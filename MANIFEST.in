@@ -1,0 +1,5 @@
+include *.txt *.py *.rst
+recursive-include src *.py *.txt *.rst *.pyw *.pyx
+recursive-include src/gui *.ui *.py *.bat *.sh *.svg *.png *.qrc
+recursive-include src/gui/res *
+recursive-include src/doc *

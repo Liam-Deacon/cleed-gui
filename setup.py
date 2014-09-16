@@ -43,10 +43,10 @@ dist = setup(
             # If any package contains *.txt or *.rst files, include them:
             '': ['*.txt', '*.rst', '*.pyw'],
             },
-        scripts = ["cleed-gui/cleed-gui.py"],
+        scripts=[os.path.join("src", "cleed-gui.pyw")],
         install_requires = ['PyQy'],
         ext_modules=[],
-        window=[os.path.join("cleed-gui", "cleed-gui.pyw")],
+        window=[os.path.join("src", "cleed-gui.pyw")],
         # options={
             # 'py2exe': { 
                     # 'skip_archive':1,
