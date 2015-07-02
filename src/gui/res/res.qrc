@@ -14,6 +14,11 @@
     <file>paperclip.svg</file>
     <file>read_more.svg</file>
     <file>spin_alt.svg</file>
+    <file>pattern.svg</file>
+    <file>graph_smooth.svg</file>
+    <file>iv_expt.svg</file>
+    <file>iv_theory.svg</file>
+    <file>electricity.svg</file>
     <file>stop.svg</file>
     <file>play.svg</file>
     <file>pause.svg</file>
@@ -193,7 +198,6 @@
     <file>rss_alt.svg</file>
     <file>save.svg</file>
     <file>Scissors_icon_black.svg</file>
-    <file>spin.svg</file>
     <file>square_32x32.png</file>
     <file>tag_stroke.svg</file>
     <file>target_32x32.png</file>

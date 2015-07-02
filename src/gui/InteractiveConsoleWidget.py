@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 ##############################################################################
 # Author: Liam Deacon                                                        #
 #                                                                            #
@@ -32,21 +35,38 @@
 from __future__ import print_function, unicode_literals
 from __future__ import absolute_import, division, with_statement
 
-import logging
+#from pyqterm import TerminalWidget
+from code import InteractiveConsole
+from imp import new_module
+from PyQt4 import QtCore, QtGui
+ 
+class Console(InteractiveConsole):
+ 
+    def __init__(self, names=None):
+        names = names or {}
+        names['console'] = self
+        InteractiveConsole.__init__(self, names)
+        self.superspace = new_module('superspace')
+ 
+    def enter(self, source):
+        source = self.preprocess(source)
+        self.runcode(source)
+ 
+    @staticmethod
+    def preprocess(source):
+        return source
 
+class InteractiveConsoleWidget(QtGui.QWidget):
+    def __init__(self):
+        QtGui.QWidget.__init__(self)
+        self.console = Console()
 
-class OutputInterceptor(object):
-    '''inteceptor class for capturing a log stream'''
-    def __init__(self, name, stream):
-        self.logger = logging.getLogger(name)
-        self.stream = stream
-        self.flush = self.stream.flush
-        self.fileno = self.stream.fileno
-
-    def write(self, msg):
-        self.stream.write(msg)
-        msg = msg.strip()
-        if 'WARNING' in msg:
-            self.logger.warning(msg)
-        elif msg:
-            self.logger.info(msg)
+if __name__ == '__main__':
+    import sys
+    from PyQt4.QtGui import QApplication
+    app = QApplication(sys.argv)
+    win = InteractiveConsoleWidget()
+    win.resize(800, 600)
+    win.show()
+    app.exec_()    
+    console = Console()

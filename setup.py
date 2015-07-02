@@ -44,19 +44,8 @@ dist = setup(
             '': ['*.txt', '*.rst', '*.pyw'],
             },
         scripts=[os.path.join("src", "cleed-gui.pyw")],
-        install_requires = ['PyQy'],
+        install_requires = ['PyQy', 'matplotlib', 'pymol', 'phaseshifts'],
         ext_modules=[],
         window=[os.path.join("src", "cleed-gui.pyw")],
-        # options={
-            # 'py2exe': { 
-                    # 'skip_archive':1,
-                    # 'compressed':0,  
-                    # 'bundle_files': 2, 
-                    # 'dist_dir': os.path.join("dist", "py2exe"),
-                    # 'excludes':['tcl', 'bz2'],
-                    # 'dll_excludes':['w9xpopen.exe', 'tk85.dll', 'tcl85.dll']
-                   # }
-               # },
-        #zipfile = None
                
 )

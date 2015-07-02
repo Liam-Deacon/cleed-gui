@@ -1,0 +1,3 @@
+
+class ScriptingFactory(object):
+    pass

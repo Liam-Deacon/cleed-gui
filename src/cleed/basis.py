@@ -32,21 +32,32 @@
 from __future__ import print_function, unicode_literals
 from __future__ import absolute_import, division, with_statement
 
-import logging
+import math
 
+def dotproduct(v1, v2):
+    return sum((a*b) for a, b in zip(v1, v2))
 
-class OutputInterceptor(object):
-    '''inteceptor class for capturing a log stream'''
-    def __init__(self, name, stream):
-        self.logger = logging.getLogger(name)
-        self.stream = stream
-        self.flush = self.stream.flush
-        self.fileno = self.stream.fileno
+def length(v):
+    return math.sqrt(dotproduct(v, v))
 
-    def write(self, msg):
-        self.stream.write(msg)
-        msg = msg.strip()
-        if 'WARNING' in msg:
-            self.logger.warning(msg)
-        elif msg:
-            self.logger.info(msg)
+def angle(v1, v2):
+    tmp = dotproduct(v1, v2) / (length(v1) * length(v2))
+    tmp = 1.0 if tmp > 1.0 else tmp
+    tmp = -1.0 if tmp < -1.0 else tmp
+    return math.acos(tmp)
+
+def norm(v):
+    l = length(v)
+    return [a/l for a in v]
+
+def unitcell(a1, a2, a3):
+    uc = {}
+    uc['alpha'] = float('{:.5f}'.format(angle(a1, a3)*180./math.pi))
+    uc['beta'] = float('{:.5f}'.format(angle(a2, a3)*180./math.pi))
+    uc['gamma'] = float('{:.5f}'.format(angle(a1, a2)*180./math.pi))
+    uc['a'] = length(a1)
+    uc['b'] = length(a2)
+    uc['c'] = length(a3)
+    uc['basis'] = [norm(a1), norm(a2), norm(a3)]
+    return uc
+    

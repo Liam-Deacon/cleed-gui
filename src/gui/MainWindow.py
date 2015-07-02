@@ -1,14 +1,36 @@
+##############################################################################
+# Author: Liam Deacon                                                        #
+#                                                                            #
+# Contact: liam.deacon@diamond.ac.uk                                         #
+#                                                                            #
+# Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
+#                                                                            #
+# License: MIT License                                                       #
+#                                                                            #
+# Permission is hereby granted, free of charge, to any person obtaining a    #
+# copy of this software and associated documentation files (the "Software"), #
+# to deal in the Software without restriction, including without limitation  #
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,   #
+# and/or sell copies of the Software, and to permit persons to whom the      #
+# Software is furnished to do so, subject to the following conditions:       #
+#                                                                            #
+# The above copyright notice and this permission notice shall be included in #
+# all copies or substantial portions of the Software.                        #
+#                                                                            #
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR #
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   #
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    #
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER #
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING    #
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER        #
+# DEALINGS IN THE SOFTWARE.                                                  #
+#                                                                            #
+##############################################################################
 '''
 
-@author: Liam Deacon
-
-@contact: liam.deacon@diamond.ac.uk
-
-@copyright: 2014 Liam Deacon
-
-@license: GNU General Public License 3.0
-
 '''
+from __future__ import print_function, unicode_literals
+from __future__ import absolute_import, division, with_statement
 
 # Python version compatibility
 from __future__ import print_function, with_statement
@@ -29,7 +51,7 @@ from collections import OrderedDict
 from interceptor import OutputInterceptor
 from gui.ProjectTreeView import ProjectTreeView
 from gui.mdichild import MdiChild
-from gui.ExplorerItems import ProjectItem, ModelItem
+from gui.ProjectExplorer import ProjectTreeWidget, ProjectItem, ModelItem
 
 from project import Project
 
@@ -40,6 +62,7 @@ from PyQt4.QtGui import (QApplication, QColor, QDesktopServices, QDialog,
                          QFileDialog, QMainWindow, QMessageBox, QPrinter, 
                          QPrintDialog, QPixmap, QSplashScreen, QTreeWidgetItem, 
                          QTreeWidget) 
+from PyQt4.QtCore import Qt
 import res_rc  # note this requires compiled resource file res_rc.py
 __QT_TYPE__ = 'PyQt4' 
 
@@ -58,9 +81,9 @@ __APP_LICENSE__ = 'GNU General Public License 3.0'
 __APP_NAME__ = 'CLEED-IV'
 __APP_VERSION__ = '0.1.0-dev'
 __PYTHON__ = "{0}.{1}.{2}".format(sys.version_info.major,
-                                         sys.version_info.minor,
-                                         sys.version_info.micro, 
-                                         sys.version_info.releaselevel)
+                                  sys.version_info.minor,
+                                  sys.version_info.micro, 
+                                  sys.version_info.releaselevel)
 __UPDATE_URL__ = ""
 
 __DEBUG__ = True
@@ -203,17 +226,15 @@ class MainWindow(QMainWindow):
         self.mdiArea.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.mdiArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.setCentralWidget(self.mdiArea)
-
         self.mdiArea.subWindowActivated.connect(self.updateMenus)
         self.windowMapper = QtCore.QSignalMapper(self)
         self.windowMapper.mapped[QtGui.QWidget].connect(
                                                     self.setActiveSubWindow)
         
         # setup docks
-        self.ui.treeWidgetFiles.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.ui.treeWidgetFiles.customContextMenuRequested.connect(
-                                                    self.explorerPopupMenu) 
-
+        self.ui.treeWidgetFiles = ProjectTreeWidget()
+        self.ui.dockWidgetProjects.setWidget(self.ui.treeWidgetFiles)
+        
         # Setup 
         self.createActions()
         self.createMenus()
@@ -240,8 +261,10 @@ class MainWindow(QMainWindow):
         self.ui.printAction.triggered.connect(self.printer)
         for i in range(MainWindow.maxRecentFiles):
             self.recentFileActions.append(
-                          QtGui.QAction(self, visible=False,
-                                        triggered=self.openRecentFile))
+                          QtGui.QAction(self, 
+                                        visible=False,
+                                        triggered=self.openRecentFile)
+                                          )
         self.ui.restoreSessionAction.triggered.connect(self.restoreState)
         self.ui.saveAction.triggered.connect(self.save)
         self.ui.saveAllAction.triggered.connect(self.saveAll)
@@ -294,8 +317,8 @@ class MainWindow(QMainWindow):
     def about(self):
         """Display 'About' dialog"""
         text = __APP_DESCRIPTION__
-        text += '\n\nAuthor: {0} \nEmail: {1}'.format(__APP_AUTHOR__, 
-                                                      __APP_EMAIL__)
+        text += '\n\nAuthor: {0}'.format(__APP_AUTHOR__)
+        text += '\nEmail: {0}'.format(__APP_EMAIL__)
         text += '\n\nApp version: {0}'.format(__APP_VERSION__)
         text += '\n{0}'.format(__APP_COPYRIGHT__)
         text += '\n' + __APP_LICENSE__
@@ -333,7 +356,7 @@ class MainWindow(QMainWindow):
             self.trayIcon.show()
             self.trayIcon.showMessage("CLEED-IV",
                     "The program will keep running in the system tray. To "
-                    "terminate the program, choose 'Quit' in the "
+                    "terminate the program, choose 'Exit' in the "
                     "context menu of the system tray entry.",
                     self.trayIcon.Information, 25000)
             event.ignore()
@@ -371,40 +394,6 @@ class MainWindow(QMainWindow):
         return child
 
     def createActions(self):
-        # generic actions
-        self.renameAction = QtGui.QAction(
-                                      QtGui.QIcon(":/tag_stroke.svg"),
-                                      "Re&name", self,
-                                      triggered=self.rename)
-        
-        self.refreshAction = QtGui.QAction(
-                                      QtGui.QIcon(":/reload.svg"),
-                                      "&Refresh", self,
-                                      triggered=self.refresh,
-                                      shortcut="F5")
-        
-        # explorer actions        
-        self.newProjectAction = QtGui.QAction(
-                                      QtGui.QIcon(":/document_alt_stroke.svg"),
-                                      "&New Project", self,
-                                      triggered=self.newProject)
-        self.newProjectAction.setToolTip("Create new project...")
-        
-        self.importProjectAction = QtGui.QAction(QtGui.QIcon(":/import.svg"),
-                                "&Import Project", self,
-                                triggered=self.importProject)
-        self.importProjectAction.setToolTip("Import existing project...")    
-        
-        self.newModelAction = QtGui.QAction(
-                                      QtGui.QIcon(":/atoms.svg"),
-                                      "&New Model", self,
-                                      triggered=self.newModel)
-        self.newModelAction.setToolTip("Create new model...")
-        
-        self.importModelAction = QtGui.QAction(QtGui.QIcon(":/import.svg"),
-                                "&Import Model", self,
-                                triggered=self.importModel)
-        self.importModelAction.setToolTip("Import existing model...")      
         
         # system tray
         self.killAllAction = QtGui.QAction(QtGui.QIcon(':/x.svg'),
@@ -476,33 +465,6 @@ class MainWindow(QMainWindow):
         self.sessionMenu.setIcon(QtGui.QIcon(":/session.svg"))
         self.scriptingMenu.setIcon(QtGui.QIcon(":/cog.svg"))
         
-        # explorer menus
-        self.explorerDefaultMenu = QtGui.QMenu()
-        self.explorerDefaultMenu.addAction(self.newProjectAction)
-        self.explorerDefaultMenu.addAction(self.importProjectAction)
-        self.explorerDefaultMenu.addSeparator()
-        self.explorerDefaultMenu.addAction(self.copyAction)
-        self.explorerDefaultMenu.addAction(self.cutAction)
-        self.explorerDefaultMenu.addAction(self.pasteAction)
-        #self.explorerDefaultMenu.addAction(self.renameAction)
-        self.explorerDefaultMenu.addSeparator()
-        self.explorerDefaultMenu.addAction(self.refreshAction)
-        
-        self.explorerProjectMenu = QtGui.QMenu()
-        self.explorerProjectMenu.addAction(self.newModelAction)
-        self.explorerProjectMenu.addAction(self.importModelAction)
-        self.explorerProjectMenu.addSeparator()
-        self.explorerProjectMenu.addAction(self.copyAction)
-        self.explorerProjectMenu.addAction(self.cutAction)
-        self.explorerProjectMenu.addAction(self.pasteAction)
-        self.explorerProjectMenu.addAction(self.renameAction)
-        self.explorerProjectMenu.addSeparator()
-        self.explorerProjectMenu.addAction(self.refreshAction)
-        
-        self.explorerFileMenu = QtGui.QMenu()
-        self.explorerFileMenu.addAction(self.newAction)
-        self.explorerFileMenu.addAction(self.refreshAction)
-        
     def createToolBars(self):
         '''create custom toolbars here'''
         pass
@@ -549,27 +511,6 @@ class MainWindow(QMainWindow):
             self.activeMdiChild().cut()
         else:
             self.todo()
-
-    def explorerPopupMenu(self, point):
-        '''popup menu for explorer widget'''
-        index = self.ui.treeWidgetFiles.indexAt(point)
-        if index.isValid():
-            # show custom menu for file type held at given index
-            item = self.ui.treeWidgetFiles.itemFromIndex(index)
-            if self.ui.treeWidgetFiles.indexOfTopLevelItem(item) > -1:
-                # then its a top-level item
-                self.ui.treeWidgetFiles.selectionModel().setCurrentIndex(index, 
-                                            QtGui.QItemSelectionModel.NoUpdate)
-                self.explorerProjectMenu.popup(
-                        self.ui.treeWidgetFiles.viewport().mapToGlobal(point))
-            else:
-                self.explorerFileMenu.popup(
-                        self.ui.treeWidgetFiles.viewport().mapToGlobal(point))
-                print('another item: %s' % item.text(0))
-        else:
-            # provide default menu
-            self.explorerDefaultMenu.popup(
-                        self.ui.treeWidgetFiles.viewport().mapToGlobal(point))
             
     def findMdiChild(self, fileName):
         '''find mdi child'''
@@ -701,68 +642,6 @@ class MainWindow(QMainWindow):
         child.newFile()
         child.show()
 
-    def newProject(self, projectName=None):
-        if not projectName:
-            projectName = "Untitle_Project"
-        
-        # get storage location for project
-        homePath = QtGui.QDesktopServices.storageLocation(
-                                        QtGui.QDesktopServices.HomeLocation)
-        projectDir = os.path.join(homePath, "CLEED", "models")
-        folder = QFileDialog.getExistingDirectory(parent=self, 
-                            caption="Select Project Base Directory",
-                              directory=projectDir, 
-                              options=QFileDialog.ShowDirsOnly | 
-                                      QFileDialog.DontResolveSymlinks)    
-        if folder:
-            # do stuff
-            items = [self.treeWidgetFiles.topLevelItem(i).Path for i 
-                     in range(self.treeWidgetFiles.topLevelItemCount())]
-            if folder not in items:
-                proj = ProjectItem(self.ui.treeWidgetFiles, path=folder)
-            else:
-                pass
-                self.treeWidgetFiles.setCurrentIndex(0, items.index(folder, ))
-
-    def newModel(self, project, modelName=None):
-        if not modelName:
-            text, ok = QtGui.QInputDialog.getText(self, 'Input Dialog', 
-                                              'Enter model name:')
-            if not ok:
-                return
-            
-            modelName = text
-        
-        try:
-            index = self.ui.treeWidgetFiles.selectedIndexes()[0]
-            parent = self.ui.treeWidgetFiles.itemFromIndex(index)
-            path = os.path.join(parent.Path, modelName)
-             
-            if not modelName:
-                modelName = "New_Model"
-                i = 1
-                path = os.path.join(parent.Path, modelName)
-                while os.path.isdir(modelName):
-                    modelName = "New_Model%i" % i
-                    path = os.path.join(parent.Path, modelName)
-                    i += 1
-            
-            model = ModelItem(path)
-            a = parent.addChild(model)
-            print(a)    
-            if not os.path.exists(path):
-                os.makedirs(path, 755)
-                # add new input files
-                
-            else:
-                pass
-        
-        except IndexError:
-            # no index selected (or created?)
-            pass    
-        
-        
-
     def open(self):
         fileName = QtGui.QFileDialog.getOpenFileName(self)
         if fileName:
@@ -841,12 +720,6 @@ class MainWindow(QMainWindow):
     
     def readStdOutput(self):
         self.ui.textEditLog.append(str(self.readAllStandardOutput()))
-    
-    def rename(self):
-        self.todo()
-        
-    def refresh(self):
-        self.todo()
     
     def save(self):
         '''save current window'''
@@ -1092,37 +965,6 @@ class MainWindow(QMainWindow):
     def visitWebsite(self):
         '''open link to CLEED website'''
         self.todo()
-
-    def getChildItemsDict(self, obj):
-        try:
-            if isinstance(obj, QTreeWidget):
-                root = obj.invisibleRootItem()
-            elif isinstance(obj, QTreeWidgetItem):
-                root = obj
-            child_count = root.childCount()
-            topLevelDict = {}
-            for i in range(child_count):
-                item = root.child(i)
-                var = str(item.text(0))
-                exec('%s = i' % var)
-                topLevelDict.update({var: eval(var)})
-            return topLevelDict
-        except any as e:
-            self.logger.error(e.msg)
-            
-    def getChildItemHandle(self, obj, name=str):
-        if isinstance(obj, QTreeWidget):
-            root = obj.invisibleRootItem()
-        elif isinstance(obj, QTreeWidgetItem):
-            root = obj
-        
-        if isinstance(name, int):
-            return root.child(name)
-        elif isinstance(name, str):
-            for i in range(root.childCount()):
-                item = root.child(i)
-                if str(item.text(0)) == name:
-                    return item 
             
             
 # boilerplate function - should be applicable to most applications

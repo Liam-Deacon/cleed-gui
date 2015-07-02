@@ -3,9 +3,7 @@
 #                                                                            #
 # Contact: liam.deacon@diamond.ac.uk                                         #
 #                                                                            #
-# Created on 20 Jun 2014                                                       #
-#                                                                            #
-# Copyright: Copyright (C) 2014 Liam Deacon                                #
+# Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
 #                                                                            #
 # License: MIT License                                                       #
 #                                                                            #
