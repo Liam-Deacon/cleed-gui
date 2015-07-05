@@ -32,7 +32,7 @@
 from __future__ import print_function, unicode_literals
 from __future__ import absolute_import, division, with_statement
 
-from PyQt4 import QtGui, QtCore
+from qtbackend import QtGui, QtCore
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib as mpl
@@ -45,12 +45,12 @@ from copy import deepcopy
 import dialogs
 
 try:
-    from cleed import iv as iv_
+    from core import iv as iv_
 except ImportError:
     import sys
     import os
     module_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    module_path = os.path.join(module_path, 'cleed')
+    module_path = os.path.join(module_path, 'core')
     sys.path.insert(0, module_path)
     import iv as iv_
     
@@ -72,7 +72,7 @@ class MplCanvas(FigureCanvas):
 
  
 class MatplotlibWidget(QtGui.QWidget):
-    '''class to provide a matplotlib PyQt widget'''
+    '''class to provide a matplotlib Qt widget'''
     PICKER = 5
     HIGHLIGHTER = dict(boxstyle='round,pad=0.25', 
                        alpha=0.5, 

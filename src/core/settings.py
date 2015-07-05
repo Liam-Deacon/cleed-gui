@@ -26,7 +26,6 @@
 # DEALINGS IN THE SOFTWARE.                                                  #
 #                                                                            #
 ##############################################################################
-from ConfigParser import _default_dict
 '''
 *settings.py* - module for dealing with general CLEED-GUI application settings.
 '''
@@ -57,7 +56,7 @@ class CLEEDConfigParser(configparser.ConfigParser):
     
     def __init__(self, 
                  defaults=None, 
-                 dict_type=_default_dict, 
+                 dict_type=configparser._default_dict, 
                  allow_no_value=False):
         configparser.ConfigParser.__init__(self, defaults=defaults, 
                                            dict_type=dict_type, 

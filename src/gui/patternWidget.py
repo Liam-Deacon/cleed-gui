@@ -34,12 +34,12 @@ from PySide.QtGui import QGraphicsItem
 from operator import isCallable
 
 try:
-    from cleed import pattern
+    from core import pattern
 except ImportError:
     import sys
     import os
     module_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    module_path = os.path.join(module_path, 'cleed')
+    module_path = os.path.join(module_path, 'core')
     sys.path.insert(0, module_path)
     import pattern
 

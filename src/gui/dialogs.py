@@ -32,19 +32,23 @@
 from __future__ import print_function, unicode_literals
 from __future__ import absolute_import, division, with_statement
 
-from PyQt4 import QtGui, QtCore
+from qtbackend import QtGui, QtCore
 
 import matplotlib as mpl 
 
 import res_rc
 
+class SettingsDialog(QtGui.QDialog):
+    def __init__(self, parent=None):
+        super(SettingsDialog, self).__init__(parent)
+
 class CanvasWidget(QtGui.QWidget):
     def __init__(self, parent=None):
-        super(CanvasWidget, self).__init__()
+        super(CanvasWidget, self).__init__(parent)
 
 class AxisScaleWidget(QtGui.QWidget):
     def __init__(self, parent=None):
-        super(AxisScaleWidget, self).__init__()        
+        super(AxisScaleWidget, self).__init__(parent)        
         
         axis_from_spinbox = QtGui.QDoubleSpinBox()
         axis_from_spinbox.setToolTip('Specifies the axis maximum')

@@ -1,6 +1,15 @@
 <RCC>
   <qresource>
+    <file>pattern.svg</file>
+    <file>share.svg</file>
+    <file>award_fill.svg</file>
+    <file>heart_fill.svg</file>
+    <file>bars_alt.svg</file>
+    <file>layers.svg</file>
     <file>eject.svg</file>
+    <file>rf.svg</file>
+    <file>id.svg</file>
+    <file>index.svg</file>
     <file>document_stroke.svg</file>
     <file>fullscreen_alt.svg</file>
     <file>key_stroke.svg</file>

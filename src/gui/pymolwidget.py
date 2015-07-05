@@ -37,10 +37,10 @@ import os
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
-from PyQt4 import QtGui
-from PyQt4.QtOpenGL import *
-from PyQt4.Qt import Qt
-from PyQt4 import QtCore
+
+from qtbackend import QtCore, QtGui
+from qtbackend.QtOpenGL import *
+from qtbackend.QtCore import Qt
 
 import pymol2
 from pymol import _cmd

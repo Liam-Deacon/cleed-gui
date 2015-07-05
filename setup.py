@@ -23,8 +23,8 @@ dist = setup(
         author_email='liam.deacon@diamond.ac.uk',
         license='GNU General Public License v3.0',
         url='https://pypi.python.org/pypi/cleed-gui',
-        description='PyQt GUI front end to CLEED',
-        long_description=open(os.path.join('phaseshifts', 'README.rst')
+        description='CLEED front-end for handling LEED-IV calculations',
+        long_description=open(os.path.join('src', 'README.rst')
             ).read() if os.path.isfile('README.rst') else None,
         classifiers=[
             'Development Status :: 2 - Pre-Alpha',
@@ -44,7 +44,8 @@ dist = setup(
             '': ['*.txt', '*.rst', '*.pyw'],
             },
         scripts=[os.path.join("src", "cleed-gui.pyw")],
-        install_requires = ['PyQy', 'matplotlib', 'pymol', 'phaseshifts'],
+        install_requires = ['PySide', 'IPython', 'numpy', 'scipy', 'cython',
+                            'matplotlib', 'pymol', 'phaseshifts'],
         ext_modules=[],
         window=[os.path.join("src", "cleed-gui.pyw")],
                

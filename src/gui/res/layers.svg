@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   version="1.1"
+   width="32"
+   height="28"
+   viewBox="0 0 32 28"
+   id="svg2"
+   xml:space="preserve"><metadata
+   id="metadata18"><rdf:RDF><cc:Work
+       rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /><dc:title></dc:title></cc:Work></rdf:RDF></metadata><defs
+   id="defs16">
+		
+		
+		
+	</defs>
+<g
+   id="Layer_1">
+</g>
+<g
+   id="layers">
+	<polygon
+   points="32,24 16,28 0,24 0,20 16,24 32,20 "
+   id="polygon8"
+   style="fill:#84be0e;fill-opacity:1" /><polygon
+   points="32,16 16,20 0,16 0,12 16,16 32,12 "
+   id="polygon10"
+   style="fill:#84be0e;fill-opacity:1" /><polygon
+   points="32,8 16,12 0,8 0,4 16,0 32,4 "
+   id="polygon12"
+   style="fill:#84be0e;fill-opacity:1" />
+</g>
+</svg>

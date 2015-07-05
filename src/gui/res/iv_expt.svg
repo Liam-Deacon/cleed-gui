@@ -13,7 +13,7 @@
    inkscape:version="0.48.4 r9939"
    width="100%"
    height="100%"
-   sodipodi:docname="iv_theory.svg">
+   sodipodi:docname="iv_expt.svg">
   <metadata
      id="metadata20">
     <rdf:RDF>
@@ -22,7 +22,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -40,7 +40,7 @@
      id="namedview18"
      showgrid="false"
      inkscape:zoom="5.6874095"
-     inkscape:cx="-21.934345"
+     inkscape:cx="-49.363353"
      inkscape:cy="6.2355363"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
@@ -68,8 +68,8 @@
      id="path14"
      style="stroke:#84be0e;stroke-opacity:1;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none" />
   <path
-     d="M 13.14513,23.92454 C 32.85639,4.24993 38.89371,10.82263 43.96887,24.94531 47.24426,34.32262 47.86069,46.89314 58.67143,51"
+     d="m 6.463705,23.221232 c 19.71126,-19.6746099 25.74858,-13.10191 30.82374,1.02077 3.27539,9.37731 3.89182,21.94783 14.70256,26.05469"
      id="path16"
-     style="fill:none;stroke:#84be0e;stroke-width:4;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+     style="fill:none;stroke:#84be0e;stroke-width:8;stroke-miterlimit:36.5;stroke-opacity:1;stroke-dasharray:none"
      inkscape:connector-curvature="0" />
 </svg>

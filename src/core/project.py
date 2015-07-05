@@ -95,7 +95,7 @@ class Project(object):
     def model_name(self):
         return self._name
     
-    @name.setter
+    @model_name.setter
     def model_name(self, name):
         if isinstance(name, str):
             self._name = name
