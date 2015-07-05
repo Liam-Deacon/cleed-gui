@@ -15,7 +15,7 @@ using the command line:
 #!bash
 
 cd /path/to/clone/repo/into
-git clone https://Liam_Deacon@bitbucket.org/Liam_Deacon/cleed-gui.git
+git clone https://${bitbucket_username}@bitbucket.org/cleed/cleed-gui.git
 ```
 
 
