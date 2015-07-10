@@ -34,10 +34,131 @@ STYLES = {
     'numbers': format('brown'),
 }
 
+class CLEEDHighlighter(QSyntaxHighlighter):
+    """ Syntax highlighter for CLEED input files. """
+    keywords = [
+                # basis vectors
+                'a1', 'a2', 'a3',
+                # comments
+                'c', '#',
+                # energy range  
+                'ei', 'ef', 'es',
+                # search epsilon and initial angles
+                'ep', 'it', 'ip', 
+                # phaseshift and minimum radii
+                'lm', 'rm',
+                # overlayer and bulk atoms
+                'po', 'pb',  
+                # superstructure matrix rows
+                'm1', 'm2', 
+                # symmetry & geometry considerations
+                'spp', 'sz', 'sr',
+                # LEED optical potential
+                'vi', 'vr', 
+                # other flags
+                'zr', 
+                # lattice repetitions
+                'il', 'nl',
+                # phaseshifts extensions
+                'exc', 'lmax', 'phs', 'val',
+                ]
+    operators = [':', 
+                 'dr1', 'dr3', 
+                 'exchange', 'valence', 'c', 'radius', 'nform']
+    braces = ['\(', '\)',]
+    
+    def __init__(self, document):
+        QSyntaxHighlighter.__init__(self, document)
+        
+        rules = []
+        
+        # Keyword, operator, and brace rules
+        rules += [(r'\b%s\b' % w, 0, STYLES['keyword'])
+            for w in PythonHighlighter.keywords]
+        rules += [(r'%s' % o, 0, STYLES['operator'])
+            for o in PythonHighlighter.operators]
+        rules += [(r'%s' % b, 0, STYLES['brace'])
+            for b in PythonHighlighter.braces]
+            
+        rules += [
+                  # From '#' until a newline
+                  (r'#[^\n]*', 0, STYLES['comment']),
+        
+                  # Numeric literals
+                  (r'\b[+-]?[0-9]+[lL]?\b', 0, STYLES['numbers']),
+                  (r'\b[+-]?0[xX][0-9A-Fa-f]+[lL]?\b', 0, STYLES['numbers']),
+                  (r'\b[+-]?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\b', 
+                        0, STYLES['numbers']),
+                  ]
+        
+        # Build a QRegExp for each pattern
+        self.rules = [(QRegExp(pat), index, fmt)
+            for (pat, index, fmt) in rules]
+        
+    def highlightBlock(self, text):
+        """ Apply syntax highlighting to the given block of text. """
+        # Do other syntax formatting
+        for expression, nth, format in self.rules:
+            index = expression.indexIn(text, 0)
 
-class PythonHighlighter (QSyntaxHighlighter):
-    """Syntax highlighter for the Python language.
-    """
+            while index >= 0:
+                # We actually want the index of the nth match
+                index = expression.pos(nth)
+                length = len(expression.cap(nth))
+                self.setFormat(index, length, format)
+                index = expression.indexIn(text, index + length)
+
+        self.setCurrentBlockState(0)
+
+        # Do multi-line strings
+        in_multiline = self.match_multiline(text, *self.tri_single)
+        if not in_multiline:
+            in_multiline = self.match_multiline(text, *self.tri_double)
+
+
+    def match_multiline(self, text, delimiter, in_state, style):
+        """Do highlighting of multi-line strings. ``delimiter`` should be a
+        ``QRegExp`` for triple-single-quotes or triple-double-quotes, and
+        ``in_state`` should be a unique integer to represent the corresponding
+        state changes when inside those strings. Returns True if we're still
+        inside a multi-line string when this function is finished.
+        """
+        # If inside triple-single quotes, start at 0
+        if self.previousBlockState() == in_state:
+            start = 0
+            add = 0
+        # Otherwise, look for the delimiter on this line
+        else:
+            start = delimiter.indexIn(text)
+            # Move past this match
+            add = delimiter.matchedLength()
+
+        # As long as there's a delimiter match on this line...
+        while start >= 0:
+            # Look for the ending delimiter
+            end = delimiter.indexIn(text, start + add)
+            # Ending delimiter on this line?
+            if end >= add:
+                length = end - start + add + delimiter.matchedLength()
+                self.setCurrentBlockState(0)
+            # No; multi-line string
+            else:
+                self.setCurrentBlockState(in_state)
+                length = len(text) - start + add
+            # Apply formatting
+            self.setFormat(start, length, style)
+            # Look for the next match
+            start = delimiter.indexIn(text, start + length)
+
+        # Return True if still inside a multi-line string, False otherwise
+        if self.currentBlockState() == in_state:
+            return True
+        else:
+            return False
+
+
+class PythonHighlighter(QSyntaxHighlighter):
+    """ Syntax highlighter for the Python language. """
     # Python keywords
     keywords = [
         'and', 'assert', 'break', 'class', 'continue', 'def',
@@ -105,7 +226,8 @@ class PythonHighlighter (QSyntaxHighlighter):
             # Numeric literals
             (r'\b[+-]?[0-9]+[lL]?\b', 0, STYLES['numbers']),
             (r'\b[+-]?0[xX][0-9A-Fa-f]+[lL]?\b', 0, STYLES['numbers']),
-            (r'\b[+-]?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\b', 0, STYLES['numbers']),
+            (r'\b[+-]?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\b', 
+                0, STYLES['numbers']),
         ]
 
         # Build a QRegExp for each pattern
@@ -114,8 +236,7 @@ class PythonHighlighter (QSyntaxHighlighter):
 
 
     def highlightBlock(self, text):
-        """Apply syntax highlighting to the given block of text.
-        """
+        """ Apply syntax highlighting to the given block of text. """
         # Do other syntax formatting
         for expression, nth, format in self.rules:
             index = expression.indexIn(text, 0)

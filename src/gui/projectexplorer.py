@@ -40,6 +40,16 @@ try:
 except:
     pass
 
+try:
+    import core
+except ImportError:
+    import sys
+    import os
+    module_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    module_path = os.path.join(module_path, 'core')
+    sys.path.insert(0, module_path)
+    import core
+
 class ProjectTreeWidget(QtGui.QTreeWidget):
     def __init__(self, parent=None):
         super(ProjectTreeWidget, self).__init__(parent)
@@ -90,7 +100,8 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
                                         QtGui.QIcon(":/folder_fill.svg"),
                                         "Open Project &Location", self,
                                         triggered=self.removeProject)
-        self.newProjectAction.setToolTip("Opens project location in file explorer")
+        self.newProjectAction.setToolTip(
+                                    "Opens project location in file explorer")
         
         # explorer menus
         self.explorerDefaultMenu = QtGui.QMenu()
@@ -126,6 +137,20 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
         
         #recent projects
         self.recent_projects = []
+    
+    def expandChildren(self, index):
+        ''' Recursely expands all children for the given index node'''
+        if not index.isValid():
+            return
+
+        childCount = index.model().rowCount(index)
+        for i in range(childCount):
+            child = index.child(i, 0)
+            # Recursively call the function for each child node.
+            expandChildren(child)
+
+        if not view.expanded(index):
+            view.expand(index)
     
     def explorerPopupMenu(self, point):
         '''popup menu for explorer widget'''
@@ -278,9 +303,25 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
             for i in range(root.childCount()):
                 item = root.child(i)
                 if str(item.text(0)) == name:
-                    return item 
+                    return item
 
-class ProjectItem(QtGui.QTreeWidgetItem):
+
+class BaseItem(QtGui.QTreeWidgetItem):
+    def __init__(self, parent=None):
+        super(BaseItem, self).__init__(parent)
+    
+    @classmethod
+    def getChildren(cls, parent, recursive=True):
+        ''' Get either immediate or all children of parent node ''' 
+        children = []
+        for i in range(parent.childCount()):
+            child = parent.child(i)
+            children += [child]
+            if recursive:
+                children += BaseItem.getChildren(child, recursive)
+        return children
+
+class ProjectItem(BaseItem):
     projects = []
     
     '''class for project items'''
@@ -310,6 +351,10 @@ class ProjectItem(QtGui.QTreeWidgetItem):
         except:
             pass
     
+    @classmethod
+    def load(cls, directory):
+        pass
+    
     @property
     def project_path(self):
         return self._path
@@ -332,7 +377,7 @@ class ProjectItem(QtGui.QTreeWidgetItem):
         self._name = name
     
         
-class ModelItem(QtGui.QTreeWidgetItem):
+class ModelItem(BaseItem):
     '''class for project items'''
     def __init__(self, parent=None, path=None):
         super(ModelItem, self).__init__(parent)
@@ -367,7 +412,7 @@ class ModelItem(QtGui.QTreeWidgetItem):
         
             
 
-class InputItem(QtGui.QTreeWidgetItem):
+class InputItem(BaseItem):
     '''class for project items'''
     def __init__(self, parent=None, input=None):
         super(InputItem, self).__init__(parent)
@@ -377,7 +422,7 @@ class InputItem(QtGui.QTreeWidgetItem):
         
         self.model = None
       
-class BulkItem(QtGui.QTreeWidgetItem):
+class BulkItem(BaseItem):
     '''class for project items'''
     def __init__(self, parent=None, bulk=None):
         super(BulkItem, self).__init__(parent)
@@ -388,7 +433,7 @@ class BulkItem(QtGui.QTreeWidgetItem):
         self.model = None
         
         
-class SearchItem(QtGui.QTreeWidgetItem):
+class SearchItem(BaseItem):
     '''class for LEED-IV control items'''
     def __init__(self, parent=None, path=None):
         #super(InputItem, self).__init__(parent)
@@ -396,7 +441,7 @@ class SearchItem(QtGui.QTreeWidgetItem):
         self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
 
 
-class SettingsItem(QtGui.QTreeWidgetItem):
+class SettingsItem(BaseItem):
     '''class for local settings'''
     def __init__(self, parent=None, path=None):
         #super(InputItem, self).__init__(parent)
@@ -404,23 +449,55 @@ class SettingsItem(QtGui.QTreeWidgetItem):
         self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
         
         
-class IVGroupItem(QtGui.QTreeWidgetItem):
+class IVGroupItem(BaseItem):
     '''class for handling LEED-IV curves'''
     def __init__(self, parent=None, path=None, ivs=[]):
         super(IVGroupItem, self).__init__(parent)
         self.setIcon(0, QtGui.QIcon(":/list.svg"))
         self.setText(0, 'IV_Group')
         
+        # initialise actions
         self.iv_pairs = [IVInfoItem()]
         
         for iv in self.iv_pairs:
             self.addChild(iv)
         
-    def readControlFile(self, ctr):
+        # initialise other aspects
+        self.theta = QtGui.QTreeWidgetItem()
+        self.theta.setText(0, 'Theta')
+        self.theta.setIcon(0, QtGui.QIcon(':/theta.svg'))
+        
+        self.phi = QtGui.QTreeWidgetItem()
+        self.phi.setText(0, 'Phi')
+        self.phi.setIcon(0, QtGui.QIcon(':/phi.svg'))
+        
+        self.enabled = QtGui.QTreeWidgetItem()
+        self.enabled.setText(0, 'Enabled')
+        self.enabled.setIcon(0, QtGui.QIcon(':/check.svg'))
+        
+        self.rfactor = QtGui.QTreeWidgetItem()
+        self.rfactor.setText(0, 'Rfactor')
+        self.rfactor.setIcon(0, QtGui.QIcon(':/rf.svg'))
+        
+        self.addChildren([self.theta, self.phi, self.enabled, self.rfactor])
+        
+    @classmethod
+    def readControlFile(cls, ctr):
+        pass
+    
+    def _createActions(self):
+        self.generateControlAction = QtGui.QAction(
+                                    QtGui.QIcon(":/document_edit_24x32.png"),
+                                    "&Edit ctr file...", 
+                                    self,
+                                    triggered=self.viewControl,
+                                    shortcut='Ctrl+E')
+        self.generateControlAction.setToolTip("Edit LEED control file...")
+
+    def viewControl(self):
         pass
 
-
-class IVInfoItem(QtGui.QTreeWidgetItem):
+class IVInfoItem(BaseItem):
     def __init__(self, parent=None, iv_pair=None):
         super(IVInfoItem, self).__init__(parent)
         self.setIcon(0, QtGui.QIcon(":/index.svg"))
@@ -437,24 +514,12 @@ class IVInfoItem(QtGui.QTreeWidgetItem):
         self.weight.setText(0, 'Weight')
         self.weight.setIcon(0, QtGui.QIcon(":/eject.svg"))
         
-        self.used = QtGui.QTreeWidgetItem()
-        self.used.setText(0, 'Used')
-        self.used.setIcon(0, QtGui.QIcon(':/check.svg'))
-        
-        self.theta = QtGui.QTreeWidgetItem()
-        self.theta.setText(0, 'Theta')
-        self.theta.setIcon(0, QtGui.QIcon(':/theta.svg'))
-        
-        self.phi = QtGui.QTreeWidgetItem()
-        self.phi.setText(0, 'Phi')
-        self.phi.setIcon(0, QtGui.QIcon(':/phi.svg'))
-        
         self.rfactor = QtGui.QTreeWidgetItem()
         self.rfactor.setText(0, 'Rfactor')
         self.rfactor.setIcon(0, QtGui.QIcon(':/rf.svg'))
         
-        self.addChildren([self.expt, self.theory, self.id, self.weight, 
-                          self.used, self.theta, self.phi, self.rfactor])
+        self.addChildren([self.expt, self.theory, self.id, 
+                          self.weight, self.rfactor])
         
         try:
             if isinstance(iv_pair, IVCurvePair):
@@ -466,22 +531,25 @@ class IVInfoItem(QtGui.QTreeWidgetItem):
             pass
 
 
-class IVCurveItem(QtGui.QTreeWidgetItem):
+class IVCurveItem(BaseItem):
     def __init__(self, parent=None, path=None):
         super(IVCurveItem, self).__init__(parent)
         self.setIcon(0, QtGui.QIcon(":/graph_dash.svg"))
+        self.setText(0, "IV curve")
 
 
 class ExperimentalIVCurveItem(IVCurveItem):
     def __init__(self, parent=None, path=None):
         super(ExperimentalIVCurveItem, self).__init__(parent)
         self.setIcon(0, QtGui.QIcon(":/iv_expt.svg"))
+        self.setText(0, "Experimental IV")
 
 
 class TheoreticalIVCurveItem(IVCurveItem):
     def __init__(self, parent=None, path=None):
         super(TheoreticalIVCurveItem, self).__init__(parent)
         self.setIcon(0, QtGui.QIcon(":/iv_theory.svg"))
+        self.setText(0, "Theoretical IV")
         self.setFlags(self.flags())
 
 
@@ -491,9 +559,11 @@ if __name__ == '__main__':
     explorer = ProjectTreeWidget()
     
     project = ProjectItem()
-    pro2 = ProjectItem()
+    #pro2 = ProjectItem()
     explorer.addTopLevelItem(project)
-    explorer.addTopLevelItem(pro2)
+    for child in project.getChildren(project):
+        child.setExpanded(True)
+    #explorer.addTopLevelItem(pro2)
     
     explorer.show()
     app.exec_()
