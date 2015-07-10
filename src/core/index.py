@@ -48,6 +48,18 @@ class MillerIndex(object):
                     self.k == other.k and
                     self.l == other.l)
     
+    def __gt__(self, other):
+        return self.order() > other.order()
+
+    def __ge__(self, other):
+        return self.order() >= other.order()
+    
+    def __lt__(self, other):
+        return self.order() < other.order()
+
+    def __le__(self, other):
+        return self.order() <= other.order()
+    
     def __str__(self):
         if not self.l:
             return '({h:.3f}, {k:.3f})'.format(h=self.h, 
@@ -96,11 +108,19 @@ class MillerIndex(object):
             self._miller_l = None
             
     def index(self):
+        ''' Returns the Miller indices as a tuple '''
         return eval(self.__str__())
+    
+    def order(self, round=False):
+        ''' Returns the order of the diffraction spot '''
+        f = lambda x: int(x) if round else x
+        return f(abs(self.h) + abs(self.k))
+
 
 class MillerDirection(MillerIndex):
     def __str__(self):
         MillerIndex.__str__().replace('(', '[').replace(')', ']')
+
         
 class MillerPlane(MillerIndex):
     def __repr__(self):
@@ -118,6 +138,22 @@ class MillerIndexSet(object):
         return '+'.join([str(index) for index in set(self.indices) 
                          if isinstance(index, MillerIndex)])
 
+    @property
+    def indices(self):
+        return set(self._indices)
+    
+    @indices.setter
+    def indices(self, indices):
+        values = []
+        for ind in indices:
+            if isinstance(ind, str):
+                index = eval(ind)
+            elif isinstance(ind, MillerIndex):
+                pass
+            else:
+                index = MillerIndex(*ind)
+            values.append(index)
+        self._indices = values
 
 if __name__ == '__main__':
     miller = MillerIndex(0., 0.5)
