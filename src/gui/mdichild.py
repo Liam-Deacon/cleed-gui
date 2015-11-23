@@ -3,9 +3,7 @@
 #                                                                            #
 # Contact: liam.deacon@diamond.ac.uk                                         #
 #                                                                            #
-# Created on 20 Jun 2014                                                       #
-#                                                                            #
-# Copyright: Copyright (C) 2014 Liam Deacon                                #
+# Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
 #                                                                            #
 # License: MIT License                                                       #
 #                                                                            #
@@ -34,11 +32,11 @@
 from __future__ import print_function, unicode_literals
 from __future__ import absolute_import, division, with_statement
 
-from PyQt4 import QtCore, QtGui 
+from qtbackend import QtCore, QtGui 
 
-from gui.PymolQtWidget import PymolQtWidget
-from gui.matplotlibQtWidget import matplotlibWidget
-from gui import res_rc
+from pymolwidget import PymolQtWidget
+from graphs import MatplotlibWidget
+import res_rc
 
 class MdiChild(QtGui.QTextEdit):
     sequenceNumber = 1

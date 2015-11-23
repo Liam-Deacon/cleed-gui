@@ -27,8 +27,8 @@
 '''
 Wrapper module for launching main window of GUI
 '''
-from gui import MainWindow
+from gui import mainwindow
 from sys import argv
 
 if __name__ == '__main__':
-    MainWindow.main(argv)
+    mainwindow.main(argv)

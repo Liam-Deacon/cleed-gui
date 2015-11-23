@@ -1,13 +1,9 @@
 eclipse.preferences.version=1
 encoding//src/cleed-gui.pyw=utf-8
-encoding//src/core/transformations.py=utf-8
-encoding//src/gui/PeriodicTable.py=utf-8
-encoding//src/gui/QtHelpBrowserWidget.py=utf-8
-encoding//src/gui/elements_gui.py=utf-8
-encoding//src/gui/res_rc.py=utf-8
+encoding//src/gui/ProjectTreeView.py=utf-8
 encoding//src/gui/settings.py=utf-8
 encoding//src/modelling/atom.py=utf-8
 encoding//src/modelling/elements.py=utf-8
 encoding//src/modelling/model.py=utf-8
 encoding//src/modelling/unitcell.py=utf-8
-encoding/setup.py=utf-8
+encoding//src/setup.py=utf-8

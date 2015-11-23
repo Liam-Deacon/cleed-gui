@@ -32,21 +32,28 @@
 from __future__ import print_function, unicode_literals
 from __future__ import absolute_import, division, with_statement
 
-import logging
+class Symmetry(object):
+    def __init__(self, x=0., y=0.):
+        self.x = x
+        self.y = y
+        
+class MirrorPlane(Symmetry):
+    def __init__(self, x=0., y=0.):
+        Symmetry.__init__(self, x, y)
 
-
-class OutputInterceptor(object):
-    '''inteceptor class for capturing a log stream'''
-    def __init__(self, name, stream):
-        self.logger = logging.getLogger(name)
-        self.stream = stream
-        self.flush = self.stream.flush
-        self.fileno = self.stream.fileno
-
-    def write(self, msg):
-        self.stream.write(msg)
-        msg = msg.strip()
-        if 'WARNING' in msg:
-            self.logger.warning(msg)
-        elif msg:
-            self.logger.info(msg)
+class RotationalSymmetry(Symmetry):
+    def __init__(self, n_fold=1, x=0., y=0.):
+        self.order = n_fold
+        self.setRotationalAxis(x, y)
+    
+    def setRotationalAxis(self, x, y):
+        self.x = float(x)
+        self.y = float(y)
+        
+    @property
+    def order(self):
+        return self._nfold
+        
+    @order.setter
+    def order(self, n_fold):
+        self._nfold = int(n_fold)

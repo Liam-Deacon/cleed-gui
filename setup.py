@@ -23,8 +23,8 @@ dist = setup(
         author_email='liam.deacon@diamond.ac.uk',
         license='GNU General Public License v3.0',
         url='https://pypi.python.org/pypi/cleed-gui',
-        description='PyQt GUI front end to CLEED',
-        long_description=open(os.path.join('phaseshifts', 'README.rst')
+        description='CLEED front-end for handling LEED-IV calculations',
+        long_description=open(os.path.join('src', 'README.rst')
             ).read() if os.path.isfile('README.rst') else None,
         classifiers=[
             'Development Status :: 2 - Pre-Alpha',
@@ -43,20 +43,11 @@ dist = setup(
             # If any package contains *.txt or *.rst files, include them:
             '': ['*.txt', '*.rst', '*.pyw'],
             },
-        scripts=[os.path.join("src", "cleed-gui.pyw")],
-        install_requires = ['PyQy'],
+        scripts=[os.path.join("src", "cleed-gui.pyw"),
+                 os.path.join("src", "core", "rfactor.py")],
+        install_requires = ['PySide', 'IPython', 'numpy', 'scipy', 'cython',
+                            'matplotlib', 'pymol', 'phaseshifts'],
         ext_modules=[],
         window=[os.path.join("src", "cleed-gui.pyw")],
-        # options={
-            # 'py2exe': { 
-                    # 'skip_archive':1,
-                    # 'compressed':0,  
-                    # 'bundle_files': 2, 
-                    # 'dist_dir': os.path.join("dist", "py2exe"),
-                    # 'excludes':['tcl', 'bz2'],
-                    # 'dll_excludes':['w9xpopen.exe', 'tk85.dll', 'tcl85.dll']
-                   # }
-               # },
-        #zipfile = None
                
 )

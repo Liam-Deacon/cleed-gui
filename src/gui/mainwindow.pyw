@@ -1,66 +1,75 @@
+##############################################################################
+# Author: Liam Deacon                                                        #
+#                                                                            #
+# Contact: liam.deacon@diamond.ac.uk                                         #
+#                                                                            #
+# Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
+#                                                                            #
+# License: MIT License                                                       #
+#                                                                            #
+# Permission is hereby granted, free of charge, to any person obtaining a    #
+# copy of this software and associated documentation files (the "Software"), #
+# to deal in the Software without restriction, including without limitation  #
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,   #
+# and/or sell copies of the Software, and to permit persons to whom the      #
+# Software is furnished to do so, subject to the following conditions:       #
+#                                                                            #
+# The above copyright notice and this permission notice shall be included in #
+# all copies or substantial portions of the Software.                        #
+#                                                                            #
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR #
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   #
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    #
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER #
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING    #
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER        #
+# DEALINGS IN THE SOFTWARE.                                                  #
+#                                                                            #
+##############################################################################
 '''
-
-@author: Liam Deacon
-
-@contact: liam.deacon@diamond.ac.uk
-
-@copyright: 2014 Liam Deacon
-
-@license: GNU General Public License 3.0
-
+** mainwindow.py ** - provides the main window class for the CLEED GUI.
 '''
-
-# Python version compatibility
-from __future__ import print_function, with_statement
-
-# These are only needed for Python v2 but are harmless for Python v3.
-import sip
-sip.setapi('QString', 2)
-sip.setapi('QVariant', 2)
+from __future__ import print_function, unicode_literals
+from __future__ import absolute_import, division, with_statement
 
 # Import standard library modules
 import logging
 import os
 import platform
 import sys
+from copy import deepcopy
 from collections import OrderedDict
+
+# Import Qt modules
+from qtbackend import QtCore, QtGui, QtLoadUI, variant as __QT_TYPE__
 
 # import package modules
 from interceptor import OutputInterceptor
-from gui.ProjectTreeView import ProjectTreeView
-from gui.mdichild import MdiChild
-from gui.ExplorerItems import ProjectItem, ModelItem
+from mdichild import MdiChild
+from projectexplorer import ProjectTreeWidget, ProjectItem, ModelItem
 
 from project import Project
 
-# Import Qt modules
-import PyQt4
-from PyQt4 import QtCore, QtGui, uic
-from PyQt4.QtGui import (QApplication, QColor, QDesktopServices, QDialog, 
-                         QFileDialog, QMainWindow, QMessageBox, QPrinter, 
-                         QPrintDialog, QPixmap, QSplashScreen, QTreeWidgetItem, 
-                         QTreeWidget) 
 import res_rc  # note this requires compiled resource file res_rc.py
-__QT_TYPE__ = 'PyQt4' 
 
 # other modules
-from settings import Settings
+#from settings import Settings
 from ImportDialog import ImportDialog
 
 # Define globals
 __APP_AUTHOR__ = 'Liam Deacon'
-__APP_COPYRIGHT__ = '\xa9' + '2013 {0}'.format(__APP_AUTHOR__)
+__APP_COPYRIGHT__ = '\xa9' + '2013-2015 {0}'.format(__APP_AUTHOR__)
 __APP_DESCRIPTION__ = ('CLEED - Interactive Visualiser (IV) \n '
                         '- a GUI front end to the CLEED package')
 __APP_DISTRIBUTION__ = 'cleed-gui'
 __APP_EMAIL__ = 'liam.deacon@diamond.ac.uk'
 __APP_LICENSE__ = 'GNU General Public License 3.0'
-__APP_NAME__ = 'CLEED-IV'
+__APP_NAME__ = u'CLEED-IV'
 __APP_VERSION__ = '0.1.0-dev'
 __PYTHON__ = "{0}.{1}.{2}".format(sys.version_info.major,
-                                         sys.version_info.minor,
-                                         sys.version_info.micro, 
-                                         sys.version_info.releaselevel)
+                                  sys.version_info.minor,
+                                  sys.version_info.micro, 
+                                  sys.version_info.releaselevel)
 __UPDATE_URL__ = ""
 
 __DEBUG__ = True
@@ -76,12 +85,11 @@ if platform.system() is 'Windows':
 #==============================================================================
 
 
-class MainWindow(QMainWindow):
+class MainWindow(QtGui.QMainWindow):
     '''Class for main application widget'''
     
     maxRecentFiles = 10
     lastDirectory = QtGui.QDesktopServices.HomeLocation
-    models = []
     
     class StreamProxy(QtCore.QObject):
         # only the GUI thread is allowed to write messages in the
@@ -99,49 +107,160 @@ class MainWindow(QMainWindow):
         def flush(self):
             self.flush_text.emit()
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, autoload=False):
         super(MainWindow, self).__init__(parent)
         
         # dynamically load ui
         uiFile = "MDIMainWindow.ui"  # change to desired relative ui file path
         if not os.path.isfile(uiFile):
             uiFile = os.path.join('gui', "MDIMainWindow.ui")
-            
-        self.ui = QMainWindow()
-        self.ui = uic.loadUi(uiFile, self) 
+        self.ui = QtLoadUI(uiFile)
         
-        self.init()
-        self.initUi()
+        # Note: bug where extra 'self' window is shown alongside 'self.ui'
+        self.setWindowFlags(QtCore.Qt.Tool)  # shoe-horn a quiet self MainWindow
         
-        self.ui.show()
+        self._init()
+        self._initUi()
+        
+        if autoload:
+            self.loadSession()
 
-    def shutdown(self):
-        logger = logging.getLogger(__APP_NAME__)
-        for handler in logger.handlers:
-            logger.removeHandler(handler)
-
-    @QtCore.pyqtSlot(str)
-    def write(self, msg):
-        if 'ERROR' in msg:
-            color = QColor('Red')
-        elif 'WARNING' in msg:
-            color = QColor('Orange')
-        elif 'INFO' in msg:
-            color = QColor('Blue')
-        else:
-            color = QColor('Black')
-        self.ui.textEditLog.setTextColor(color)
-        self.ui.textEditLog.append(msg)
-        self.ui.textEditLog.setTextColor(QColor('Black'))
+    def _createActions(self):
+        '''
+        Creates additional actions not loaded from the MainWindow.ui file
+        '''
+        # system tray
+        self.killAllAction = QtGui.QAction(QtGui.QIcon(':/x.svg'),
+                                "&Kill all processes", self, 
+                                triggered=self.hide)
         
-    @QtCore.pyqtSlot()
-    def flush(self):
-        if self.isHidden():
-            self.show()
-        self.raise_()
+        self.minimizeAction = QtGui.QAction(QtGui.QIcon(':/minus.svg'),
+                                    "Mi&nimize", self, triggered=self.hide)
+        
+        self.maximizeAction = QtGui.QAction(QtGui.QIcon(':/new_window.svg'),
+                                            "Ma&ximize", self, 
+                                            triggered=self.showMaximized)
+        
+        self.restoreAction = QtGui.QAction(QtGui.QIcon(':/reload.svg'),
+                                           "&Restore", self,
+                                           triggered=self.showNormal) 
+
+        # MDI windows
+        self.closeMdiAction = QtGui.QAction(QtGui.QIcon(":/denied.svg"),
+                             "&Close", self, 
+                             statusTip="Close active MDI window",
+                             triggered=self.ui.mdiArea.closeActiveSubWindow)
+
+        self.closeAllMdiAction = QtGui.QAction(QtGui.QIcon(":/denied.svg"),
+                             "&Close All", self, 
+                             statusTip="Close active MDI window",
+                             triggered=self.ui.mdiArea.closeAllSubWindows)                             
+        
+        self.tileMdiAction = QtGui.QAction(
+                         "&Tile", self, statusTip="Tile the windows",
+                         triggered=self.ui.mdiArea.tileSubWindows)
+
+        self.cascadeMdiAction = QtGui.QAction("&Cascade", self,
+                statusTip="Cascade the windows",
+                triggered=self.ui.mdiArea.cascadeSubWindows)
+
+        self.nextMdiAction = QtGui.QAction(QtGui.QIcon(":/arrow_right.svg"),
+                            "Ne&xt", self,
+                            shortcut=QtGui.QKeySequence.NextChild,
+                            statusTip="Move the focus to the next window",
+                            triggered=self.ui.mdiArea.activateNextSubWindow)
+
+        self.previousMdiAction = QtGui.QAction(QtGui.QIcon(":/arrow_left.svg"),
+                            "Pre&vious", self,
+                            shortcut=QtGui.QKeySequence.PreviousChild,
+                            statusTip="Move the focus to the previous window",
+                            triggered=self.ui.mdiArea.activatePreviousSubWindow)
+        
+        self.separatorMdiAction = QtGui.QAction(self)
+        self.separatorMdiAction.setSeparator(True)
+
+    def _createMenus(self):
+        '''Creates additional menus not in ui file or alter existing'''
+        self.updateWindowMenu()
+        self.ui.windowMenu.aboutToShow.connect(self.updateWindowMenu)
+
+        self.menuBar().addSeparator()
+        
+        # recent files
+        for i in range(MainWindow.maxRecentFiles):
+            try:
+                self.ui.recentFilesMenu.addAction(self.ui.recentFileActions[i])
+            except IndexError:
+                pass
+        
+        # add icons to menus
+        self.ui.recentFilesMenu.setIcon(QtGui.QIcon(":/clock.svg"))
+        self.ui.exportMenu.setIcon(QtGui.QIcon(":/export.svg"))
+        self.ui.sessionMenu.setIcon(QtGui.QIcon(":/session.svg"))
+        self.ui.scriptingMenu.setIcon(QtGui.QIcon(":/cog.svg"))
+        
+    def _createToolBars(self):
+        '''Creates custom toolbars here'''
+        self.ui.graphToolBar = QtGui.QToolBar("graph")
+        self.ui.modelToolBar = QtGui.QToolBar("model")
+        self.ui.pymolToolBar = QtGui.QToolBar("pymol")
+
+    def _createDocks(self):
+        '''Creates and customise docks not loaded from the ui file'''
+        self.setDockOptions(QtGui.QMainWindow.AnimatedDocks | 
+                            QtGui.QMainWindow.AllowNestedDocks)
+        
+        # add scripting dock
+        self.ui.dockWidgetScript = QtGui.QDockWidget("Script", self)
+        self.ui.dockWidgetScript.setAllowedAreas(QtCore.Qt.LeftDockWidgetArea | 
+                                           QtCore.Qt.RightDockWidgetArea | 
+                                           QtCore.Qt.BottomDockWidgetArea | 
+                                           QtCore.Qt.TopDockWidgetArea)  # all
+        self.ui.dockWidgetScript.setObjectName('dockWidgetScript')
+        from scripting import CLEEDConsoleWidget
+        self.console = CLEEDConsoleWidget(self)
+        self.ui.dockWidgetScript.setWidget(self.console)
+        self.ui.addDockWidget(QtCore.Qt.BottomDockWidgetArea, 
+                              self.ui.dockWidgetScript)
+
+    def _createTrayIcon(self):
+        '''Creates system tray icon'''
+        self.ui.trayIconMenu = QtGui.QMenu()
+        self.ui.trayIconMenu.addAction(self.minimizeAction)
+        self.ui.trayIconMenu.addAction(self.maximizeAction)
+        self.ui.trayIconMenu.addAction(self.restoreAction)
+        self.ui.trayIconMenu.addSeparator()
+        self.ui.trayIconMenu.addAction(self.ui.exitAction)
+
+        self.ui.trayIcon = QtGui.QSystemTrayIcon(self.ui)
+        self.ui.trayIcon.setContextMenu(self.ui.trayIconMenu)
+         
+        icon = self.ui.windowIcon()
+        self.ui.trayIcon.setIcon(icon)
+        self.ui.setWindowIcon(icon)
+        self.ui.trayIcon.setToolTip("CLEED-IV")
+        self.ui.trayIcon.setVisible(False)
+
+    def _createStatusBar(self):
+        '''Creates custom status bar'''
+        statusBar = QtGui.QStatusBar()
+        statusBar = self.statusBar()
+        statusBar.showMessage("Ready")
+        #statusBar.addWidget(QtGui.QLabel("test"), 1)
+        #=======================================================================
+        # m_statusLeft = QtGui.QLabel("Left", self)
+        # m_statusLeft.setFrameStyle(QtGui.QFrame.Panel | QtGui.QFrame.Sunken)
+        # m_statusMiddle = QtGui.QLabel("Middle", self)
+        # m_statusMiddle.setFrameStyle(QtGui.QFrame.Panel | QtGui.QFrame.Sunken)
+        # m_statusRight = QtGui.QLabel("Right", self)
+        # m_statusRight.setFrameStyle(QtGui.QFrame.Panel | QtGui.QFrame.Sunken)
+        # statusBar.addPermanentWidget(m_statusLeft, 1)
+        # statusBar.addPermanentWidget(m_statusMiddle, 1)
+        # statusBar.addPermanentWidget(m_statusRight, 2)
+        #=======================================================================
 
     # initialise class
-    def init(self, verbose=True):
+    def _init(self, verbose=True):
         '''initialise logging and objects before gui''' 
 
         ######################################
@@ -172,9 +291,8 @@ class MainWindow(QMainWindow):
         
         if __DEBUG__:
             pwd = os.path.dirname(__file__)
-            os.system('pyrcc4 %s -o %s' % (
-                                       os.path.join(pwd, 'res', 'res.qrc'),
-                                       os.path.join(pwd, 'res_rc.py')))
+            os.system('pyrcc4 %s -o %s' % (os.path.join(pwd, 'res', 'res.qrc'),
+                                           os.path.join(pwd, 'res_rc.py')))
         
         # create proxy stream layer
         stream_proxy = self.StreamProxy(self)
@@ -189,37 +307,36 @@ class MainWindow(QMainWindow):
         sys.stdout = OutputInterceptor('stdout', sys.stdout)
         
         # other variables
-        self.projects = []
+        self.projects = {}
+        self.models = {}
         
     # initialise UI
-    def initUi(self):
+    def _initUi(self):
         '''Class to initialise the Qt Widget and setup slots and signals'''
 
         # recent files
-        self.recentFileActions = []
+        self.ui.recentFileActions = []
 
         # Setup MDI area
-        self.mdiArea = QtGui.QMdiArea()
-        self.mdiArea.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        self.mdiArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        self.setCentralWidget(self.mdiArea)
-
-        self.mdiArea.subWindowActivated.connect(self.updateMenus)
-        self.windowMapper = QtCore.QSignalMapper(self)
-        self.windowMapper.mapped[QtGui.QWidget].connect(
-                                                    self.setActiveSubWindow)
+        self.ui.mdiArea = QtGui.QMdiArea()
+        self.ui.mdiArea.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.ui.mdiArea.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.ui.setCentralWidget(self.ui.mdiArea)
+        self.ui.mdiArea.subWindowActivated.connect(self.updateMenus)
+        self.ui.windowMapper = QtCore.QSignalMapper(self)
+        self.ui.windowMapper.mapped[QtGui.QWidget].connect(self.setActiveSubWindow)
         
         # setup docks
-        self.ui.treeWidgetFiles.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.ui.treeWidgetFiles.customContextMenuRequested.connect(
-                                                    self.explorerPopupMenu) 
-
+        self.ui.treeWidgetFiles = ProjectTreeWidget()
+        self.ui.dockWidgetProjects.setWidget(self.ui.treeWidgetFiles)
+        
         # Setup 
-        self.createActions()
-        self.createMenus()
-        self.createToolBars()
-        self.createTrayIcon()
-        self.createStatusBar()
+        self._createActions()
+        self._createMenus()
+        self._createToolBars()
+        self._createTrayIcon()
+        self._createDocks()
+        self._createStatusBar()
         self.updateMenus()
 
         self.readSettings()
@@ -239,9 +356,11 @@ class MainWindow(QMainWindow):
         self.ui.openAction.triggered.connect(self.open)
         self.ui.printAction.triggered.connect(self.printer)
         for i in range(MainWindow.maxRecentFiles):
-            self.recentFileActions.append(
-                          QtGui.QAction(self, visible=False,
-                                        triggered=self.openRecentFile))
+            self.ui.recentFileActions.append(
+                          QtGui.QAction(self, 
+                                        visible=False,
+                                        triggered=self.openRecentFile)
+                                          )
         self.ui.restoreSessionAction.triggered.connect(self.restoreState)
         self.ui.saveAction.triggered.connect(self.save)
         self.ui.saveAllAction.triggered.connect(self.saveAll)
@@ -260,14 +379,20 @@ class MainWindow(QMainWindow):
         # view actions
         self.ui.hideAllAction.triggered.connect(self.todo)
         self.ui.showAllAction.triggered.connect(self.todo)
-        self.ui.showExplorerAction.triggered.connect(self.todo)
-        self.ui.showPropertiesAction.triggered.connect(self.todo)
-        self.ui.showLogAction.triggered.connect(self.todo)
+        self.ui.showExplorerAction.toggled.connect(lambda x:
+                            self.ui.dockWidgetProjects.setVisible(x))
+        self.ui.showPropertiesAction.toggled.connect(lambda x:
+                            self.ui.dockWidgetProperties.setVisible(x))
+        self.ui.showLogAction.toggled.connect(lambda x:
+                            self.ui.dockWidgetLog.setVisible(x))
+        self.ui.showScriptAction.toggled.connect(lambda x:
+                            self.ui.dockWidgetScript.setVisible(x))
         
         # process actions
         
         # window actions
         self.ui.minimiseAction.triggered.connect(self.todo)
+        self.ui.closeEvent = self.closeEvent  # dodgy fix for close event
         
         # help actions
         self.ui.aboutAction.triggered.connect(self.about)
@@ -279,23 +404,61 @@ class MainWindow(QMainWindow):
         self.ui.websiteAction.triggered.connect(self.visitWebsite)
         
         # explorer dock
+        #self.ui.dockWidgetProjects.visibilityChanged.connect(self.updateDocks)
         
         # log dock
+        #self.ui.dockWidgetLog.visibilityChanged.connect(self.updateDocks)
          
         # properties dock
+        #self.ui.dockWidgetProperties.visibilityChanged.connect(self.updateDocks)
         
+        # script dock
+        if self.ui.dockWidgetScript.isVisible():
+            self.console.ipyconsole.setActiveWindow()
+            self.console.ipyconsole.setFocus(QtCore.Qt.ActiveWindowFocusReason)
+        #self.ui.dockWidgetScript.visibilityChanged.connect(self.updateDocks)
         # main widget
         
         # systray
-        self.trayIcon.messageClicked.connect(self.trayMessageClicked)
-        self.trayIcon.activated.connect(self.trayIconActivated)
+        self.ui.trayIcon.messageClicked.connect(self.trayMessageClicked)
+        self.ui.trayIcon.activated.connect(self.trayIconActivated)
+   
+    def _createUndoGroup(self):
+        '''Creates an Undo group for the application'''
+        self.ui.undoGroup = QtGui.QUndoGroup()
     
+    def shutdown(self):
+        logger = logging.getLogger(__APP_NAME__)
+        for handler in logger.handlers:
+            logger.removeHandler(handler)
+
+    @QtCore.pyqtSlot(str)
+    def write(self, msg):
+        if 'ERROR' in msg:
+            color = QtGui.QColor('Red')
+        elif 'WARNING' in msg:
+            color = QtGui.QColor('Orange')
+        elif 'INFO' in msg:
+            color = QtGui.QColor('Blue')
+        else:
+            color = QtGui.QColor('Black')
+        self.ui.textEditLog.setTextColor(color)
+        self.ui.textEditLog.append(msg)
+        self.ui.textEditLog.setTextColor(QtGui.QColor('Black'))
+        
+    @QtCore.pyqtSlot()
+    def flush(self):
+        if self.ui.isHidden():
+            self.ui.show()
+        self.ui.raise_()
+
+
     # Show about dialog
     def about(self):
         """Display 'About' dialog"""
         text = __APP_DESCRIPTION__
-        text += '\n\nAuthor: {0} \nEmail: {1}'.format(__APP_AUTHOR__, 
-                                                      __APP_EMAIL__)
+        text += '\n\nAuthor: {0}'.format(__APP_AUTHOR__)
+        text += '\nEmail: {0}'.format(__APP_EMAIL__)
         text += '\n\nApp version: {0}'.format(__APP_VERSION__)
         text += '\n{0}'.format(__APP_COPYRIGHT__)
         text += '\n' + __APP_LICENSE__
@@ -303,43 +466,45 @@ class MainWindow(QMainWindow):
         text += '\nGUI frontend: {0} {1}'.format(__QT_TYPE__, 
                                                  QtCore.QT_VERSION_STR)
 
-        QMessageBox.about(self, self.ui.windowTitle(), text)
+        QtGui.QMessageBox.about(self, self.ui.windowTitle(), text)
     
     # Display about dialog
     def aboutQt(self):
         """Display Qt dialog"""
-        QApplication.aboutQt()
+        QtGui.QApplication.aboutQt()
     
     def activeMdiChild(self):
-        '''return handle to active MDI child window'''
-        activeSubWindow = self.mdiArea.activeSubWindow()
-        if activeSubWindow:
-            return activeSubWindow.widget()
-        return None
+        '''Returns a handle to the active MDI child window.
+        If no such handle exists then :code:py:`None` will be returned.
+        '''
+        try:
+            return self.ui.mdiArea.activeSubWindow()
+        except:
+            return None
     
     def cleedHelp(self):
         '''display CLEED help in browser'''
         help_file = str((os.path.abspath(os.path.join(
                         '.', 'gui', 'res', 'help', 'html', 'index.html'))))
-        if not QDesktopServices.openUrl(
+        if not QtGui.QDesktopServices.openUrl(
                             QtCore.QUrl.fromLocalFile(help_file)):
             self.logger.error(
                 "Could not open CLEED help file '%s' in browser" % help_file)
-
+            
     def closeEvent(self, event):
         '''override closeEvent'''
-        if not self.trayIcon.isVisible():
-            self.hide()
-            self.trayIcon.show()
-            self.trayIcon.showMessage("CLEED-IV",
+        if not self.ui.trayIcon.isVisible():
+            self.ui.hide()
+            self.ui.trayIcon.show()
+            self.ui.trayIcon.showMessage("CLEED-IV",
                     "The program will keep running in the system tray. To "
-                    "terminate the program, choose 'Quit' in the "
+                    "terminate the program, choose 'Exit' in the "
                     "context menu of the system tray entry.",
-                    self.trayIcon.Information, 25000)
+                    self.ui.trayIcon.Information, 25000)
             event.ignore()
         else:
-            self.mdiArea.closeAllSubWindows()
-            if self.mdiArea.currentSubWindow():
+            self.ui.mdiArea.closeAllSubWindows()
+            if self.ui.mdiArea.currentSubWindow():
                 event.ignore()
             else:
                 self.writeSettings()
@@ -347,11 +512,14 @@ class MainWindow(QMainWindow):
                 sys.exit(0)  # force app to exit
 
     # Report bug / email devs
-    def contactDeveloper(self):
+    def contactDeveloper(self, body=""):
         '''open email client with email to developer''' 
-        QDesktopServices.openUrl(QtCore.QUrl(
-                str("mailto: {email}?subject={name} feedback&body=").format(
-                            email=__APP_EMAIL__, name=__APP_NAME__)))
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl("mailto: "
+            "{email}?cc={cc}?subject={name} feedback&body={body}"
+            "".format(email=__APP_EMAIL__, 
+                      name=__APP_NAME__, 
+                      cc="georg.held@reading.ac.uk",
+                      body=str(body))))
 
     def copy(self):
         '''use MDI child copy method'''
@@ -363,185 +531,12 @@ class MainWindow(QMainWindow):
     def createMdiChild(self):
         '''create new MDI child'''
         child = MdiChild()
-        self.mdiArea.addSubWindow(child)
+        self.ui.mdiArea.addSubWindow(child)
 
         child.copyAvailable.connect(self.cutAction.setEnabled)
         child.copyAvailable.connect(self.copyAction.setEnabled)
 
         return child
-
-    def createActions(self):
-        # generic actions
-        self.renameAction = QtGui.QAction(
-                                      QtGui.QIcon(":/tag_stroke.svg"),
-                                      "Re&name", self,
-                                      triggered=self.rename)
-        
-        self.refreshAction = QtGui.QAction(
-                                      QtGui.QIcon(":/reload.svg"),
-                                      "&Refresh", self,
-                                      triggered=self.refresh,
-                                      shortcut="F5")
-        
-        # explorer actions        
-        self.newProjectAction = QtGui.QAction(
-                                      QtGui.QIcon(":/document_alt_stroke.svg"),
-                                      "&New Project", self,
-                                      triggered=self.newProject)
-        self.newProjectAction.setToolTip("Create new project...")
-        
-        self.importProjectAction = QtGui.QAction(QtGui.QIcon(":/import.svg"),
-                                "&Import Project", self,
-                                triggered=self.importProject)
-        self.importProjectAction.setToolTip("Import existing project...")    
-        
-        self.newModelAction = QtGui.QAction(
-                                      QtGui.QIcon(":/atoms.svg"),
-                                      "&New Model", self,
-                                      triggered=self.newModel)
-        self.newModelAction.setToolTip("Create new model...")
-        
-        self.importModelAction = QtGui.QAction(QtGui.QIcon(":/import.svg"),
-                                "&Import Model", self,
-                                triggered=self.importModel)
-        self.importModelAction.setToolTip("Import existing model...")      
-        
-        # system tray
-        self.killAllAction = QtGui.QAction(QtGui.QIcon(':/x.svg'),
-                                "&Kill all processes", self, 
-                                triggered=self.hide)
-        
-        self.minimizeAction = QtGui.QAction(QtGui.QIcon(':/minus.svg'),
-                                    "Mi&nimize", self, triggered=self.hide)
-        
-        self.maximizeAction = QtGui.QAction(QtGui.QIcon(':/new_window.svg'),
-                                            "Ma&ximize", self, 
-                                            triggered=self.showMaximized)
-        
-        self.restoreAction = QtGui.QAction(QtGui.QIcon(':/reload.svg'),
-                                           "&Restore", self,
-                                           triggered=self.showNormal) 
-
-        # MDI windows
-        self.closeMdiAction = QtGui.QAction(QtGui.QIcon(":/denied.svg"),
-                             "&Close", self, 
-                             statusTip="Close active MDI window",
-                             triggered=self.mdiArea.closeActiveSubWindow)
-
-        self.closeAllMdiAction = QtGui.QAction(QtGui.QIcon(":/denied.svg"),
-                             "&Close All", self, 
-                             statusTip="Close active MDI window",
-                             triggered=self.mdiArea.closeAllSubWindows)                             
-        
-        self.tileMdiAction = QtGui.QAction(
-                         "&Tile", self, statusTip="Tile the windows",
-                         triggered=self.mdiArea.tileSubWindows)
-
-        self.cascadeMdiAction = QtGui.QAction("&Cascade", self,
-                statusTip="Cascade the windows",
-                triggered=self.mdiArea.cascadeSubWindows)
-
-        self.nextMdiAction = QtGui.QAction(QtGui.QIcon(":/arrow_right.svg"),
-                            "Ne&xt", self,
-                            shortcut=QtGui.QKeySequence.NextChild,
-                            statusTip="Move the focus to the next window",
-                            triggered=self.mdiArea.activateNextSubWindow)
-
-        self.previousMdiAction = QtGui.QAction(QtGui.QIcon(":/arrow_left.svg"),
-                            "Pre&vious", self,
-                            shortcut=QtGui.QKeySequence.PreviousChild,
-                            statusTip="Move the focus to the previous window",
-                            triggered=self.mdiArea.activatePreviousSubWindow)
-        
-        self.separatorMdiAction = QtGui.QAction(self)
-        self.separatorMdiAction.setSeparator(True)
-
-    def createMenus(self):
-        '''create additional menus not in ui file or alter existing'''
-        self.updateWindowMenu()
-        self.windowMenu.aboutToShow.connect(self.updateWindowMenu)
-
-        self.menuBar().addSeparator()
-        
-        # recent files
-        for i in range(MainWindow.maxRecentFiles):
-            try:
-                self.recentFilesMenu.addAction(self.recentFileActions[i])
-            except IndexError:
-                pass
-        
-        # add icons to menus
-        self.recentFilesMenu.setIcon(QtGui.QIcon(":/clock.svg"))
-        self.exportMenu.setIcon(QtGui.QIcon(":/export.svg"))
-        self.sessionMenu.setIcon(QtGui.QIcon(":/session.svg"))
-        self.scriptingMenu.setIcon(QtGui.QIcon(":/cog.svg"))
-        
-        # explorer menus
-        self.explorerDefaultMenu = QtGui.QMenu()
-        self.explorerDefaultMenu.addAction(self.newProjectAction)
-        self.explorerDefaultMenu.addAction(self.importProjectAction)
-        self.explorerDefaultMenu.addSeparator()
-        self.explorerDefaultMenu.addAction(self.copyAction)
-        self.explorerDefaultMenu.addAction(self.cutAction)
-        self.explorerDefaultMenu.addAction(self.pasteAction)
-        #self.explorerDefaultMenu.addAction(self.renameAction)
-        self.explorerDefaultMenu.addSeparator()
-        self.explorerDefaultMenu.addAction(self.refreshAction)
-        
-        self.explorerProjectMenu = QtGui.QMenu()
-        self.explorerProjectMenu.addAction(self.newModelAction)
-        self.explorerProjectMenu.addAction(self.importModelAction)
-        self.explorerProjectMenu.addSeparator()
-        self.explorerProjectMenu.addAction(self.copyAction)
-        self.explorerProjectMenu.addAction(self.cutAction)
-        self.explorerProjectMenu.addAction(self.pasteAction)
-        self.explorerProjectMenu.addAction(self.renameAction)
-        self.explorerProjectMenu.addSeparator()
-        self.explorerProjectMenu.addAction(self.refreshAction)
-        
-        self.explorerFileMenu = QtGui.QMenu()
-        self.explorerFileMenu.addAction(self.newAction)
-        self.explorerFileMenu.addAction(self.refreshAction)
-        
-    def createToolBars(self):
-        '''create custom toolbars here'''
-        pass
-
-    def createTrayIcon(self):
-        '''create system tray icon'''
-        self.trayIconMenu = QtGui.QMenu(self)
-        self.trayIconMenu.addAction(self.minimizeAction)
-        self.trayIconMenu.addAction(self.maximizeAction)
-        self.trayIconMenu.addAction(self.restoreAction)
-        self.trayIconMenu.addSeparator()
-        self.trayIconMenu.addAction(self.exitAction)
-
-        self.trayIcon = QtGui.QSystemTrayIcon(self)
-        self.trayIcon.setContextMenu(self.trayIconMenu)
-         
-        icon = self.windowIcon()
-        self.trayIcon.setIcon(icon)
-        self.setWindowIcon(icon)
-        self.trayIcon.setToolTip("CLEED-IV")
-        self.trayIcon.setVisible(False)
-
-    def createStatusBar(self):
-        '''create custom status bar'''
-        statusBar = QtGui.QStatusBar()
-        statusBar = self.statusBar()
-        statusBar.showMessage("Ready")
-        #statusBar.addWidget(QtGui.QLabel("test"), 1)
-        #=======================================================================
-        # m_statusLeft = QtGui.QLabel("Left", self)
-        # m_statusLeft.setFrameStyle(QtGui.QFrame.Panel | QtGui.QFrame.Sunken)
-        # m_statusMiddle = QtGui.QLabel("Middle", self)
-        # m_statusMiddle.setFrameStyle(QtGui.QFrame.Panel | QtGui.QFrame.Sunken)
-        # m_statusRight = QtGui.QLabel("Right", self)
-        # m_statusRight.setFrameStyle(QtGui.QFrame.Panel | QtGui.QFrame.Sunken)
-        # statusBar.addPermanentWidget(m_statusLeft, 1)
-        # statusBar.addPermanentWidget(m_statusMiddle, 1)
-        # statusBar.addPermanentWidget(m_statusRight, 2)
-        #=======================================================================
     
     def cut(self):
         '''use MDI child cut method'''
@@ -549,33 +544,20 @@ class MainWindow(QMainWindow):
             self.activeMdiChild().cut()
         else:
             self.todo()
-
-    def explorerPopupMenu(self, point):
-        '''popup menu for explorer widget'''
-        index = self.ui.treeWidgetFiles.indexAt(point)
-        if index.isValid():
-            # show custom menu for file type held at given index
-            item = self.ui.treeWidgetFiles.itemFromIndex(index)
-            if self.ui.treeWidgetFiles.indexOfTopLevelItem(item) > -1:
-                # then its a top-level item
-                self.ui.treeWidgetFiles.selectionModel().setCurrentIndex(index, 
-                                            QtGui.QItemSelectionModel.NoUpdate)
-                self.explorerProjectMenu.popup(
-                        self.ui.treeWidgetFiles.viewport().mapToGlobal(point))
-            else:
-                self.explorerFileMenu.popup(
-                        self.ui.treeWidgetFiles.viewport().mapToGlobal(point))
-                print('another item: %s' % item.text(0))
-        else:
-            # provide default menu
-            self.explorerDefaultMenu.popup(
-                        self.ui.treeWidgetFiles.viewport().mapToGlobal(point))
-            
+    
+    @property
+    def docks(self):
+        docks = {}
+        for dock in [child for child in self.ui.findChildren(QtGui.QDockWidget)]:
+            docks[str(dock.objectName()).replace('dockWidget', 
+                                                 '').lower()] = dock  
+        return docks
+    
     def findMdiChild(self, fileName):
         '''find mdi child'''
         canonicalFilePath = QtCore.QFileInfo(fileName).canonicalFilePath()
 
-        for window in self.mdiArea.subWindowList():
+        for window in self.ui.mdiArea.subWindowList():
             if window.widget().currentFile() == canonicalFilePath:
                 return window
         return None
@@ -616,6 +598,12 @@ class MainWindow(QMainWindow):
             
          #"Images (*.png *.xpm *.jpg);;Text files (*.txt);;XML files (*.xml)"
     
+    def loadSession(self, filename=None):
+        ''' Loads a previous session '''
+        # simulate loading session
+        import time
+        time.sleep(1)
+    
     def loadFile(self, fileName):
         file = QtCore.QFile(fileName)
         if not file.open(QtCore.QFile.ReadOnly | QtCore.QFile.Text):
@@ -635,15 +623,13 @@ class MainWindow(QMainWindow):
     def help(self):
         """Display help"""
         help_file = str((os.path.abspath(os.path.join(
-                        '.', 'gui', 'res', 'help', 'html', 'index.html'))))
-        if not QDesktopServices.openUrl(
+                        '.', 'res', 'help', 'html', 'index.html'))))
+        if not QtGui.QDesktopServices.openUrl(
                             QtCore.QUrl.fromLocalFile(help_file)):
             self.logger.error(
                     "Could not open help file '%s' in browser" % help_file)
 
-    def getInputFile(self, startpath=str(
-                             QDesktopServices.storageLocation(
-                                  QDesktopServices.HomeLocation)), model=None):
+    def getInputFile(self, startpath=str(os.path.expanduser('~')), model=None):
         '''returns file path of input'''
         if model == None:
             model = ''
@@ -680,7 +666,8 @@ class MainWindow(QMainWindow):
     
     def newDialog(self, filename=None):
         '''Open New file dialog'''
-        self.newModel(filename)
+        pass
+        #self.newModel(filename)
         #self.newFile()
         #self.newInputFile(filename)
         
@@ -701,74 +688,12 @@ class MainWindow(QMainWindow):
         child.newFile()
         child.show()
 
-    def newProject(self, projectName=None):
-        if not projectName:
-            projectName = "Untitle_Project"
-        
-        # get storage location for project
-        homePath = QtGui.QDesktopServices.storageLocation(
-                                        QtGui.QDesktopServices.HomeLocation)
-        projectDir = os.path.join(homePath, "CLEED", "models")
-        folder = QFileDialog.getExistingDirectory(parent=self, 
-                            caption="Select Project Base Directory",
-                              directory=projectDir, 
-                              options=QFileDialog.ShowDirsOnly | 
-                                      QFileDialog.DontResolveSymlinks)    
-        if folder:
-            # do stuff
-            items = [self.treeWidgetFiles.topLevelItem(i).Path for i 
-                     in range(self.treeWidgetFiles.topLevelItemCount())]
-            if folder not in items:
-                proj = ProjectItem(self.ui.treeWidgetFiles, path=folder)
-            else:
-                pass
-                self.treeWidgetFiles.setCurrentIndex(0, items.index(folder, ))
-
-    def newModel(self, project, modelName=None):
-        if not modelName:
-            text, ok = QtGui.QInputDialog.getText(self, 'Input Dialog', 
-                                              'Enter model name:')
-            if not ok:
-                return
-            
-            modelName = text
-        
-        try:
-            index = self.ui.treeWidgetFiles.selectedIndexes()[0]
-            parent = self.ui.treeWidgetFiles.itemFromIndex(index)
-            path = os.path.join(parent.Path, modelName)
-             
-            if not modelName:
-                modelName = "New_Model"
-                i = 1
-                path = os.path.join(parent.Path, modelName)
-                while os.path.isdir(modelName):
-                    modelName = "New_Model%i" % i
-                    path = os.path.join(parent.Path, modelName)
-                    i += 1
-            
-            model = ModelItem(path)
-            a = parent.addChild(model)
-            print(a)    
-            if not os.path.exists(path):
-                os.makedirs(path, 755)
-                # add new input files
-                
-            else:
-                pass
-        
-        except IndexError:
-            # no index selected (or created?)
-            pass    
-        
-        
-
     def open(self):
         fileName = QtGui.QFileDialog.getOpenFileName(self)
         if fileName:
             existing = self.findMdiChild(fileName)
             if existing:
-                self.mdiArea.setActiveSubWindow(existing)
+                self.ui.mdiArea.setActiveSubWindow(existing)
                 return
 
             child = self.createMdiChild()
@@ -839,14 +764,16 @@ class MainWindow(QMainWindow):
         else:
             self.todo()
     
+    @property
+    def processes(self):
+        import psutil 
+        pid = os.getpid()
+        children = psutil.Process().get_children(recursive=False)
+        pids = {'main_pid': pid, 'sub_processes': children}
+        return pids
+    
     def readStdOutput(self):
         self.ui.textEditLog.append(str(self.readAllStandardOutput()))
-    
-    def rename(self):
-        self.todo()
-        
-    def refresh(self):
-        self.todo()
     
     def save(self):
         '''save current window'''
@@ -864,10 +791,10 @@ class MainWindow(QMainWindow):
         
     def saveAll(self):
         '''save all objects'''
-        if len(self.mdiArea.subWindowList()) < 1:
+        if len(self.ui.mdiArea.subWindowList()) < 1:
             self.logger.warning("SaveAll aborted: No child windows")
             return
-        for window in self.mdiArea.subWindowList():
+        for window in self.ui.mdiArea.subWindowList():
             if not window.save():
                 msg = "Failed to save file: '%s'" % window
                 self.logger.error(msg)
@@ -875,7 +802,7 @@ class MainWindow(QMainWindow):
     def setActiveSubWindow(self, window):
         '''set active MDI child'''
         if window:
-            self.mdiArea.setActiveSubWindow(window)
+            self.ui.mdiArea.setActiveSubWindow(window)
 
     def setCurrentFile(self, fileName):
         '''update recent files to current file'''
@@ -911,7 +838,7 @@ class MainWindow(QMainWindow):
 
     def settingsDialog(self):
         """Launch settings dialog"""
-        from SettingsDialog import SettingsDialog
+        from dialogs import SettingsDialog
         settingsDialog = SettingsDialog(parent=self)
         settingsDialog.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         settingsDialog.finished.connect(self.updateSettings)
@@ -920,7 +847,7 @@ class MainWindow(QMainWindow):
     def showTrayMessage(self, msg, 
                         icon=QtGui.QSystemTrayIcon.Information, msecs=5000):
         '''display system tray message'''
-        self.trayIcon.showMessage(__APP_NAME__, msg, icon, msecs)
+        self.ui.trayIcon.showMessage(__APP_NAME__, msg, icon, msecs)
         
     def strippedName(self, fullFileName):
         '''return filename without path using QFileInfo'''
@@ -930,14 +857,23 @@ class MainWindow(QMainWindow):
         '''dummy function if not implemented'''
         self.logger.warning("'%s' is not implemented yet" % str(
                                                 self.sender().objectName()))
-   
+    
+    @property
+    def toolbars(self):
+        toolbars = {}
+        for toolbar in [child for child in 
+                        self.ui.findChildren(QtGui.QToolBar)]:
+            toolbars[str(toolbar.objectName()).lower().replace('toolbar', 
+                                                               '')] = toolbar
+        return toolbars
+    
     def trayIconActivated(self, reason):
         '''systray icon activated'''
         if reason == QtGui.QSystemTrayIcon.Trigger:
             self.logger.info("Systray icon triggered")
         elif reason == QtGui.QSystemTrayIcon.DoubleClick:
-            self.setVisible(True)
-            self.setWindowState(QtCore.Qt.WindowMaximized)
+            self.ui.setVisible(True)
+            self.ui.setWindowState(QtCore.Qt.WindowMaximized)
         elif reason == QtGui.QSystemTrayIcon.MiddleClick:
             self.logger.info("Systray icon activated by middle click")
    
@@ -960,24 +896,24 @@ class MainWindow(QMainWindow):
         area = settings.value("docks/properties/area", 
                               QtCore.Qt.RightDockWidgetArea)
         geometry = settings.value("docks/properties/geometry", 
-                             self.dockWidgetProperties.geometry())
-        self.addDockWidget(area, self.dockWidgetProperties)
-        self.dockWidgetProperties.setGeometry(geometry)
+                             self.ui.dockWidgetProperties.geometry())
+        self.ui.addDockWidget(area, self.ui.dockWidgetProperties)
+        self.ui.dockWidgetProperties.setGeometry(geometry)
             
         if settings.value("docks/properties/visible", True):
-            self.dockWidgetProperties.show()
+            self.ui.dockWidgetProperties.show()
         else:
-            self.dockWidgetProperties.hide()
+            self.ui.dockWidgetProperties.hide()
             
         if settings.value("projectsDockVisible", True):
-            self.dockWidgetProjects.show()
+            self.ui.dockWidgetProjects.show()
         else:
-            self.dockWidgetProjects.hide()
+            self.ui.dockWidgetProjects.hide()
             
         if settings.value("logDockVisible", True):
-            self.dockWidgetLog.show()
+            self.ui.dockWidgetLog.show()
         else:
-            self.dockWidgetLog.hide()
+            self.ui.dockWidgetLog.hide()
         
         # print all saved settings
         for i in settings.allKeys():
@@ -988,28 +924,28 @@ class MainWindow(QMainWindow):
         settings = QtCore.QSettings(__APP_DISTRIBUTION__, __APP_NAME__)
         
         # window geometry settings
-        settings.setValue("mainwindow/position", self.pos())
-        settings.setValue("mainwindow/size", self.size())
-        settings.setValue("mainwindow/maximized", self.isMaximized())
+        settings.setValue("mainwindow/position", self.ui.pos())
+        settings.setValue("mainwindow/size", self.ui.size())
+        settings.setValue("mainwindow/maximized", self.ui.isMaximized())
         
         # dock widgets
         settings.setValue("docks/properties/visible",  
-                          self.dockWidgetProperties.isVisible())
+                          self.ui.dockWidgetProperties.isVisible())
         settings.setValue("docks/properties/position", 
-                          self.dockWidgetProperties.pos())
+                          self.ui.dockWidgetProperties.pos())
         settings.setValue("docks/properties/size", 
-                          self.dockWidgetProperties.size())
+                          self.ui.dockWidgetProperties.size())
         settings.setValue("docks/properties/floating",
-                          self.dockWidgetProperties.isFloating())
+                          self.ui.dockWidgetProperties.isFloating())
         settings.setValue("docks/properties/area", 
-                          self.dockWidgetArea(self.dockWidgetProperties))
+                          self.ui.dockWidgetArea(self.ui.dockWidgetProperties))
         settings.setValue("docks/properties/geometry",
-                          self.dockWidgetProperties.geometry())
+                          self.ui.dockWidgetProperties.geometry())
         
         settings.setValue('projectsDockVisible', 
-                          self.dockWidgetProjects.isVisible())
+                          self.ui.dockWidgetProjects.isVisible())
         settings.setValue('logDockVisible', 
-                          self.dockWidgetLog.isVisible())
+                          self.ui.dockWidgetLog.isVisible())
         
     def resetSettings(self):
         settings.setValue("propertiesDockVisible", False) 
@@ -1029,20 +965,20 @@ class MainWindow(QMainWindow):
 
         for i in range(numRecentFiles):
             text = "&%d %s" % (i + 1, self.strippedName(files[i]))
-            self.recentFileActions[i].setText(text)
-            self.recentFileActions[i].setData(files[i])
-            self.recentFileActions[i].setVisible(True)
+            self.ui.recentFileActions[i].setText(text)
+            self.ui.recentFileActions[i].setData(files[i])
+            self.ui.recentFileActions[i].setVisible(True)
 
         for j in range(numRecentFiles, MainWindow.maxRecentFiles):
-            self.recentFileActions[j].setVisible(False)
+            self.ui.recentFileActions[j].setVisible(False)
 
         self.separatorAct.setVisible((numRecentFiles > 0))
     
     def updateMenus(self):
         hasMdiChild = (self.activeMdiChild() is not None)
-        self.saveAction.setEnabled(hasMdiChild)
-        self.saveAsAction.setEnabled(hasMdiChild)
-        self.pasteAction.setEnabled(hasMdiChild)
+        self.ui.saveAction.setEnabled(hasMdiChild)
+        self.ui.saveAsAction.setEnabled(hasMdiChild)
+        self.ui.pasteAction.setEnabled(hasMdiChild)
         self.closeMdiAction.setEnabled(hasMdiChild)
         self.closeAllMdiAction.setEnabled(hasMdiChild)
         self.tileMdiAction.setEnabled(hasMdiChild)
@@ -1053,22 +989,22 @@ class MainWindow(QMainWindow):
 
         hasSelection = (self.activeMdiChild() is not None and
                         self.activeMdiChild().textCursor().hasSelection())
-        self.cutAction.setEnabled(hasSelection)
-        self.copyAction.setEnabled(hasSelection)
+        self.ui.cutAction.setEnabled(hasSelection)
+        self.ui.copyAction.setEnabled(hasSelection)
 
     def updateWindowMenu(self):
-        self.windowMenu.clear()
-        self.windowMenu.addAction(self.closeMdiAction)
-        self.windowMenu.addAction(self.closeAllMdiAction)
-        self.windowMenu.addSeparator()
-        self.windowMenu.addAction(self.tileMdiAction)
-        self.windowMenu.addAction(self.cascadeMdiAction)
-        self.windowMenu.addSeparator()
-        self.windowMenu.addAction(self.nextMdiAction)
-        self.windowMenu.addAction(self.previousMdiAction)
-        self.windowMenu.addAction(self.separatorMdiAction)
+        self.ui.windowMenu.clear()
+        self.ui.windowMenu.addAction(self.closeMdiAction)
+        self.ui.windowMenu.addAction(self.closeAllMdiAction)
+        self.ui.windowMenu.addSeparator()
+        self.ui.windowMenu.addAction(self.tileMdiAction)
+        self.ui.windowMenu.addAction(self.cascadeMdiAction)
+        self.ui.windowMenu.addSeparator()
+        self.ui.windowMenu.addAction(self.nextMdiAction)
+        self.ui.windowMenu.addAction(self.previousMdiAction)
+        self.ui.windowMenu.addAction(self.separatorMdiAction)
 
-        windows = self.mdiArea.subWindowList()
+        windows = self.ui.mdiArea.subWindowList()
         self.separatorMdiAction.setVisible(len(windows) != 0)
 
         for i, window in enumerate(windows):
@@ -1078,7 +1014,7 @@ class MainWindow(QMainWindow):
             if i < 9:
                 text = '&' + text
 
-            action = self.windowMenu.addAction(text)
+            action = self.ui.windowMenu.addAction(text)
             action.setCheckable(True)
             action.setChecked(child is self.activeMdiChild())
             action.triggered.connect(self.windowMapper.map)
@@ -1092,37 +1028,25 @@ class MainWindow(QMainWindow):
     def visitWebsite(self):
         '''open link to CLEED website'''
         self.todo()
-
-    def getChildItemsDict(self, obj):
-        try:
-            if isinstance(obj, QTreeWidget):
-                root = obj.invisibleRootItem()
-            elif isinstance(obj, QTreeWidgetItem):
-                root = obj
-            child_count = root.childCount()
-            topLevelDict = {}
-            for i in range(child_count):
-                item = root.child(i)
-                var = str(item.text(0))
-                exec('%s = i' % var)
-                topLevelDict.update({var: eval(var)})
-            return topLevelDict
-        except any as e:
-            self.logger.error(e.msg)
-            
-    def getChildItemHandle(self, obj, name=str):
-        if isinstance(obj, QTreeWidget):
-            root = obj.invisibleRootItem()
-        elif isinstance(obj, QTreeWidgetItem):
-            root = obj
+    
+    def updateDocks(self):
+        docks = self.docks 
+        docks = [docks[dock] for dock in docks]
         
-        if isinstance(name, int):
-            return root.child(name)
-        elif isinstance(name, str):
-            for i in range(root.childCount()):
-                item = root.child(i)
-                if str(item.text(0)) == name:
-                    return item 
+        found = {}
+        for dock in docks:
+            found[dock] = dock.isVisible()
+        for dock in docks:
+            for item in docks:
+                if dock in self.ui.tabifiedDockWidgets(item):
+                    found[dock] = True
+                    
+        # set checked state of menus
+        self.ui.showExplorerAction.setChecked(found[self.ui.dockWidgetProjects])
+        self.ui.showLogAction.setChecked(found[self.ui.dockWidgetLog])
+        self.ui.showPropertiesAction.setChecked(found[self.ui.dockWidgetProjects])
+        self.ui.showScriptAction.setChecked(found[self.ui.dockWidgetScript])
+            
             
             
 # boilerplate function - should be applicable to most applications
@@ -1131,15 +1055,23 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
     
-    app = QApplication(argv)
+    app = QtGui.QApplication(argv)
     app.processEvents()
-    pixmap = QPixmap(os.path.abspath(
+    pixmap = QtGui.QPixmap(os.path.abspath(
                                os.path.join("res", "CLEED_logo.png")))
-    splash = QSplashScreen(pixmap, QtCore.Qt.WindowStaysOnTopHint)
-    splash.setMask(pixmap.mask())  # this is useful if splash isn't a rectangle
+    splash = QtGui.QSplashScreen(pixmap, QtCore.Qt.WindowStaysOnTopHint)
+    #splash.setMask(pixmap.mask())  # this is useful if splash isn't a rectangle
+    
+    # set font
+    font = QtGui.QFont()
+    font.setPointSize(16)
+    font.setWeight(800)
+
+    splash.setFont(font)
+    
     splash.showMessage((u'Starting %s...' % __APP_NAME__), 
-                       QtCore.Qt.AlignRight | QtCore.Qt.AlignBottom, 
-                       QtCore.Qt.yellow)
+                       QtCore.Qt.AlignCenter | QtCore.Qt.AlignBottom, 
+                       QtCore.Qt.blue)
     splash.show()
 
     # make sure Qt really display the splash screen 
@@ -1148,15 +1080,25 @@ def main(argv=None):
     app.setQuitOnLastWindowClosed(False)
     
     window = MainWindow()
+    window.hide()
+    
+    app.setWindowIcon(window.ui.windowIcon())
     
     if not QtGui.QSystemTrayIcon.isSystemTrayAvailable():
         window.logger.warning("Unable to create a Systray on this system")
+    
+    splash.showMessage(u'Loading session...', 
+                       QtCore.Qt.AlignCenter | QtCore.Qt.AlignBottom, 
+                       QtCore.Qt.blue)
+    
+    window.loadSession()
     
     # now kill the splash screen
     splash.finish(window)
     splash.close()
     
-    window.show()
+    if '-q' not in argv and '--quiet' not in argv:  
+        window.ui.show()
     sys.exit(app.exec_())
 
 # Execute main function if running as standalone module
