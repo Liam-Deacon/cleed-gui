@@ -28,9 +28,9 @@
 ##############################################################################
 from __future__ import division, with_statement, unicode_literals
 
-from PyQt4 import QtCore, QtGui
+from qtbackend import QtCore, QtGui
+from qtbackend.QtGui import QGraphicsItem
 import res_rc
-from PySide.QtGui import QGraphicsItem
 from operator import isCallable
 
 try:
@@ -232,7 +232,7 @@ class PatternWidget(QtGui.QGraphicsView):
             return
             
         # perform zoom 
-        scaling = 1.1 if delta > 0 else 0.9.
+        scaling = 1.1 if delta > 0 else 0.9
         self.scale(scaling, scaling)
         self.zoom *= scaling 
 

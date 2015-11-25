@@ -1,5 +1,35 @@
 #!/usr/bin/env python
 #encoding: utf-8
+#
+##############################################################################
+# Author: Liam Deacon                                                        #
+#                                                                            #
+# Contact: liam.deacon@diamond.ac.uk                                         #
+#                                                                            #
+# Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
+#                                                                            #
+# License: MIT License                                                       #
+#                                                                            #
+# Permission is hereby granted, free of charge, to any person obtaining a    #
+# copy of this software and associated documentation files (the "Software"), #
+# to deal in the Software without restriction, including without limitation  #
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,   #
+# and/or sell copies of the Software, and to permit persons to whom the      #
+# Software is furnished to do so, subject to the following conditions:       #
+#                                                                            #
+# The above copyright notice and this permission notice shall be included in #
+# all copies or substantial portions of the Software.                        #
+#                                                                            #
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR #
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   #
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    #
+# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER #
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING    #
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER        #
+# DEALINGS IN THE SOFTWARE.                                                  #
+#                                                                            #
+##############################################################################
+
 """
 atorb.py
 
@@ -7,7 +37,7 @@ atorb.py
 
 @contact: liam.m.deacon@gmail.com
 
-@copyright: Copyright (C) 2014 Liam Deacon
+@copyright: Copyright (C) 2014-2015 Liam Deacon
 
 @license: MIT License (see LICENSE file for details)
 
@@ -25,7 +55,8 @@ import sys
 # Define globals
 __APP_AUTHOR__ = 'Liam Deacon'
 __APP_COPYRIGHT__ = '\xa9'+'2013 {0}'.format(__APP_AUTHOR__)
-__APP_DESCRIPTION__ = 'A simple Python-based program \nfor LEED-IV data extraction'
+__APP_DESCRIPTION__ = ('A simple Python-based program ' +
+                      'for Viewing Elements in the periodic table')
 __APP_EMAIL__ = 'liam.m.deacon@gmail.com'
 __APP_LICENSE__ = 'MIT License'
 __APP_NAME__ = 'Peridic Table'
@@ -67,7 +98,17 @@ __APP_GUI__ = determineGuiFrontend()
 
 # Load resources & local modules
 import res_rc
-import elements
+
+try:
+    from modelling import elements
+except ImportError:
+    try:
+        import elements
+    except ImportError:
+        sys.path.append(
+            os.path.join(os.path.abspath(
+                            os.path.dirname(os.path.dirname(__file__))), 'modelling'))
+        import elements
 
 import re
 from collections import OrderedDict
@@ -197,22 +238,25 @@ elements_dict = OrderedDict([
 # Create a class for our main window
 class PeriodicTableDialog(QtGui.QFrame):
     """Periodic table dialog class"""
-    def __init__(self, parent=None, toggle=True):
+    def __init__(self, parent=None, toggle=True, element='H'):
         super(PeriodicTableDialog, self).__init__(parent)
  
         # Or more dynamically
-        self.ui = uic.loadUi("gui/PeriodicTable.ui", self)
+        self.ui = uic.loadUi(os.path.join(
+                                          os.path.dirname(__file__), 
+                                          "PeriodicTable.ui"), 
+                             self)
         self.ui.show()
         
-        self.selectedElement = 'H'  # default is Hydrogen
+        self.selectedElement = element  # default is Hydrogen
         
         #self.init()
         self.initUi()
     
     # Overload exit event to write configuration before exiting app
     def closeEvent(self, evnt):
-        print(self.selectedElement)
-        sys.exit(0)
+        pass # print(self.selectedElement)
+        
 
     # Setup extra UI elements
     def initUi(self):
@@ -266,7 +310,12 @@ def main():
     # Again, this is boilerplate, it's going to be the same on
     # almost every app you write
     app = QtGui.QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon('gui/res/periodictable_32x32.png'))
+    app.setWindowIcon(QtGui.QIcon(os.path.join(
+                                               os.path.dirname(__file__), 
+                                               'res', 
+                                               'periodictable.svg')
+                                  )
+                      )
     window = PeriodicTableDialog()
     window.show()
     # It's exec_ because exec is a reserved word in Python
