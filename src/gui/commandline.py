@@ -82,11 +82,6 @@ class CommandLine(object):
                                 metavar='<logfile>', default='cleed-iv.log', 
                                 type=str, help="Specifies the CLEED-IV log "
                                 "file [default: %(default)s]")
-            parser.add_argument('-i', '--import', dest='project', 
-                                metavar='<project_path>', 
-                                help='Imports an existing CLEED project '
-                                'which can be an CLEED input/control/result '
-                                'file or an CLEED-IV xml file.')
             parser.add_argument('--leed-program', dest='leed', 
                                 metavar='<leed_program>', 
                                 default= os.environ.get('CSEARCH_LEED', 'cleed'), 
