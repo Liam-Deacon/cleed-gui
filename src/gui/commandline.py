@@ -43,11 +43,14 @@ Class for processing command line arguments for CLEED-IV
 class CommandLine(object):
     def __init__(self, args=sys.argv):
         sys.argv.extend(args)
+        self.parser = ArgumentParser
         self.parsed_args = []
         self.unparsed_args = []
-        self.process_cl_args()
         
-    def process_cl_args(self):
+        self._setup_parser()
+        self.process_cl_args()
+    
+    def _setup_parser(self):
         program_name = os.path.basename(VARS['name'])
         program_version = "v%s" % VARS['version']
         program_build_date = str(VARS['date'])
@@ -71,8 +74,9 @@ class CommandLine(object):
     
         try:
             # Setup argument parser
-            parser = ArgumentParser(description=program_license, 
+            self.parser = ArgumentParser(description=program_license, 
                                 formatter_class=RawDescriptionHelpFormatter)
+            parser = self.parser
             parser.add_argument('-i', '--import', dest='project', 
                                 metavar='<project_path>', 
                                 help='Imports an existing CLEED project '
@@ -103,11 +107,12 @@ class CommandLine(object):
                                 "[default: %(default)s]")
             parser.add_argument('-V', '--version', action='version', 
                                 version=program_version_message)
-
-            self.parsed_args, self.unparsed_args = parser.parse_known_args()
-
+    
         except:
             raise
+    
+    def process_cl_args(self):
+        self.parsed_args, self.unparsed_args = self.parser.parse_known_args()
         
         return self.parsed_args, self.unparsed_args
 
