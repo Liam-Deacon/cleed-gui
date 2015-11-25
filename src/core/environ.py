@@ -33,7 +33,11 @@ from __future__ import print_function, unicode_literals
 from __future__ import absolute_import, division, with_statement
 
 import os
-from phaseshifts.utils import expand_filepath
+
+try:
+    from phaseshifts.utils import expand_filepath
+except:
+    expand_filepath = lambda x: os.path.expanduser(os.path.expandvars(x))
 
 # minimum environment for CLEED
 ENVVARS = ['CLEED_HOME', 'CLEED_PHASE', 'CSEARCH_LEED', 'CSEARCH_RFAC']

@@ -173,14 +173,16 @@ class MdiChild(QtGui.QTextEdit):
 
 
 class IVMdiChild(MdiChild):
-    '''An IV curve MDI chid window class'''
+    '''An IV curve MDI child window class'''
     def __init__(self):
-        pass
+        super(MdiChild, self).__init__()
     
-class PymolMdiChild(PymolQtWidget):
-    '''A modelling MDI chid window class'''
-    def __init__(self, parent, enableUi, File=""):
+class PymolMdiChild(PymolQtWidget, MdiChild):
+    '''A modelling MDI child window class'''
+    def __init__(self, parent, enableUi, filename=""):
         super(PymolMdiChild, self).__init__()
+        if os.path.exists(filename):
+            self.loadFile(filename)
 
     def newFile(self):
         pass
