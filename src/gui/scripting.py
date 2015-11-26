@@ -139,6 +139,9 @@ class CLEEDConsoleWidget(QtGui.QWidget):
                         "Note: type 'whos' for list of variables "
                         "or help($var) for help")
         
+        # initialise with specific modules loaded
+        self.ipyConsole._execute("from __future__ import print_function, division")
+        
 
 def main():
     app  = QtGui.QApplication([])
