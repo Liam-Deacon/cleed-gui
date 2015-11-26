@@ -929,23 +929,12 @@ class MainWindow(QtGui.QMainWindow):
         settings.setValue("mainwindow/maximized", self.ui.isMaximized())
         
         # dock widgets
-        settings.setValue("docks/properties/visible",  
-                          self.ui.dockWidgetProperties.isVisible())
-        settings.setValue("docks/properties/position", 
-                          self.ui.dockWidgetProperties.pos())
-        settings.setValue("docks/properties/size", 
-                          self.ui.dockWidgetProperties.size())
-        settings.setValue("docks/properties/floating",
-                          self.ui.dockWidgetProperties.isFloating())
-        settings.setValue("docks/properties/area", 
-                          self.ui.dockWidgetArea(self.ui.dockWidgetProperties))
-        settings.setValue("docks/properties/geometry",
-                          self.ui.dockWidgetProperties.geometry())
-        
-        settings.setValue('projectsDockVisible', 
-                          self.ui.dockWidgetProjects.isVisible())
-        settings.setValue('logDockVisible', 
-                          self.ui.dockWidgetLog.isVisible())
+        for dock in self.docks:
+            for property in ['isVisible', 'isFloating', 'pos', 'size', 'geometry']:
+                settings.setValue("docks/{name}/{field}"
+                                    "".format(name=dock, field=property),
+                                  eval("self.docks[{name}].{field}()"
+                                       "".format(name=dock, field=property)))
         
     def resetSettings(self):
         settings.setValue("propertiesDockVisible", False) 
