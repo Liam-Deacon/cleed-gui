@@ -116,6 +116,7 @@ class CommandLine(object):
         
         return self.parsed_args, self.unparsed_args
 
+
 if __name__ == '__main__':
     cli = CommandLine()
     parsed_args, unparsed_args = cli.process_cl_args()

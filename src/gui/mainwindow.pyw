@@ -893,31 +893,48 @@ class MainWindow(QtGui.QMainWindow):
             self.showMaximized()
             
         # dock widgets
+        for dock in self.docks:
+            for property in ['isVisible', 'isFloating', 'pos', 
+                             'size', 'geometry']:
+                setting = 'docks/{}/{}'.format(dock, property)
+                true = True
+                false = False
+                try:
+                    val = settings.value(setting, 
+                                         None)
+                    if property == 'isVisible':
+                        setter = 'show' if val is True else 'hide'
+                        val = ''
+                    elif property == 'isFloating':
+                        setter = 'setFloating'
+                    elif property == 'size':
+                        setter = 'resize'
+                    elif property == 'pos':
+                        try:
+                            self.ui.addDockWidget(val, 
+                                        eval("self.ui.dockWidget" + 
+                                             dock.captialize()))
+                        except AttributeError:
+                            pass 
+                        continue
+                    else:
+                        setter='set'+property.capitalize()
+                    val = str(val).lstrip('PyQt4.').replace('Core', 'QtCore')
+                    exec('self.docks["{}"].{}({})'.format(dock, setter, val))
+                except any as e:
+                    self.logger.error('Could not load setting "{}" due to {}'
+                                      ''.format(setting, e.msg))
+                    
         area = settings.value("docks/properties/area", 
                               QtCore.Qt.RightDockWidgetArea)
         geometry = settings.value("docks/properties/geometry", 
                              self.ui.dockWidgetProperties.geometry())
         self.ui.addDockWidget(area, self.ui.dockWidgetProperties)
         self.ui.dockWidgetProperties.setGeometry(geometry)
-            
-        if settings.value("docks/properties/visible", True):
-            self.ui.dockWidgetProperties.show()
-        else:
-            self.ui.dockWidgetProperties.hide()
-            
-        if settings.value("projectsDockVisible", True):
-            self.ui.dockWidgetProjects.show()
-        else:
-            self.ui.dockWidgetProjects.hide()
-            
-        if settings.value("logDockVisible", True):
-            self.ui.dockWidgetLog.show()
-        else:
-            self.ui.dockWidgetLog.hide()
         
         # print all saved settings
         for i in settings.allKeys():
-            pass
+            self.logger.info('setting: {}'.format(i))
             #print(i, settings.value(i))
     
     def writeSettings(self):
@@ -927,14 +944,15 @@ class MainWindow(QtGui.QMainWindow):
         settings.setValue("mainwindow/position", self.ui.pos())
         settings.setValue("mainwindow/size", self.ui.size())
         settings.setValue("mainwindow/maximized", self.ui.isMaximized())
+        settings.setValue("mainwindow/geometry", self.ui.geometry())
         
         # dock widgets
         for dock in self.docks:
-            for property in ['isVisible', 'isFloating', 'pos', 'size', 'geometry']:
-                settings.setValue("docks/{name}/{field}"
-                                    "".format(name=dock, field=property),
-                                  eval("self.docks[{name}].{field}()"
-                                       "".format(name=dock, field=property)))
+            for property in ['isVisible', 'isFloating', 'pos', 
+                             'size', 'geometry']:
+                key = "docks/" + dock + "/" + property
+                value = eval("self.docks['{}'].{}()".format(dock, property))
+                settings.setValue(key, str(value).lstrip('PyQt4.').lstrip('PySide.'))
         
     def resetSettings(self):
         settings.setValue("propertiesDockVisible", False) 

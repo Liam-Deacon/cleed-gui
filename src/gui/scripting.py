@@ -140,7 +140,9 @@ class CLEEDConsoleWidget(QtGui.QWidget):
                         "or help($var) for help")
         
         # initialise with specific modules loaded
-        self.ipyConsole._execute("from __future__ import print_function, division")
+        self.ipyConsole._execute("from __future__ import "
+                                 "print_function, division, unicode_literals",
+                                 hidden=True)
         
 
 def main():
