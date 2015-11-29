@@ -112,6 +112,13 @@ class CLEEDConsoleWidget(QtGui.QWidget):
         self.save_button = QtGui.QPushButton('Save')
         self.load_button = QtGui.QPushButton('Load')
         self.run_button = QtGui.QPushButton('Run...')
+        
+        try:
+            import res_rc
+            
+        except:
+            pass
+        
         button_layout.addWidget(self.load_button)
         button_layout.addWidget(self.save_button)
         button_layout.addWidget(self.run_button)
