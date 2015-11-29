@@ -417,6 +417,10 @@ class MainWindow(QtGui.QMainWindow):
             self.console.ipyconsole.setActiveWindow()
             self.console.ipyconsole.setFocus(QtCore.Qt.ActiveWindowFocusReason)
         #self.ui.dockWidgetScript.visibilityChanged.connect(self.updateDocks)
+        self.ui.dockWidgetScript.setVisible(True)
+        self.ui.dockWidgetProjects.setVisible(True)
+        self.ui.dockWidgetProperties.setVisible(True)
+        self.ui.dockWidgetLog.setVisible(True)
         # main widget
         
         # systray
@@ -880,6 +884,60 @@ class MainWindow(QtGui.QMainWindow):
     def trayMessageClicked(self):
         self.logger.debug("Tray message clicked")
     
+    @property
+    def _dockDict(self):
+        return {'visible': {'setter': 'setVisible',
+                            'getter': 'isVisible',
+                            'default': True},
+                'size': {'setter': 'resize',
+                         'getter': 'size'},
+                'position': {'setter': 'move',
+                             'getter': 'pos'},
+                'floating': {'setter': 'setFloating',
+                             'getter': 'isFloating',
+                             'default': False}
+                }
+        
+    def _getDockSettings(self):
+        dock_dict = self._dockDict
+        for dock in self.docks:
+            for property in dock_dict:
+                setting = 'docks/{}/{}'.format(dock, property)
+                true = True
+                false = False
+                try:
+                    val = eval('self.docks["{}"].{}()'
+                               ''.format(dock, dock_dict[property]['getter']))
+                    print(dock, property, val)
+                    continue
+                    if property == 'isVisible':
+                        setter = 'show' if val is True else 'hide'
+                        val = ''
+                    elif property == 'isFloating':
+                        setter = 'setFloating'
+                    elif property == 'size':
+                        setter = 'resize'
+                    elif property == 'pos':
+                        try:
+                            self.ui.addDockWidget(val, 
+                                        eval("self.ui.dockWidget" + 
+                                             dock.captialize()))
+                        except AttributeError:
+                            pass 
+                        continue
+                    else:
+                        setter = 'set' + property.capitalize()
+                    val = str(val).lstrip('PyQt4.').replace('Core', 'QtCore')
+                    try:
+                        exec('self.docks["{}"].{}({})'.format(dock, setter, val))
+                    except TypeError as e:
+                        self.logger.error('Could not load setting "{}" because {}'
+                                          ''.format(setting, e.message))
+                except any as e:
+                    self.logger.error('Could not load setting "{}" because {}'
+                                      ''.format(setting, e.message))
+        
+    
     def readSettings(self):
         settings = QtCore.QSettings(__APP_DISTRIBUTION__, __APP_NAME__)
         
@@ -894,14 +952,16 @@ class MainWindow(QtGui.QMainWindow):
             
         # dock widgets
         for dock in self.docks:
-            for property in ['isVisible', 'isFloating', 'pos', 
-                             'size', 'geometry']:
+            for property in {'isVisible': True, 
+                             'isFloating': False, 
+                             'pos': (0, 0), 
+                             'size': (0, 0), 
+                             'geometry': (0, 0, 0, 0)}:
                 setting = 'docks/{}/{}'.format(dock, property)
                 true = True
                 false = False
                 try:
-                    val = settings.value(setting, 
-                                         None)
+                    val = settings.value(setting, 1)
                     if property == 'isVisible':
                         setter = 'show' if val is True else 'hide'
                         val = ''
@@ -920,17 +980,14 @@ class MainWindow(QtGui.QMainWindow):
                     else:
                         setter='set'+property.capitalize()
                     val = str(val).lstrip('PyQt4.').replace('Core', 'QtCore')
-                    exec('self.docks["{}"].{}({})'.format(dock, setter, val))
+                    try:
+                        exec('self.docks["{}"].{}({})'.format(dock, setter, val))
+                    except TypeError as e:
+                        self.logger.error('Could not load setting "{}" because {}'
+                                          ''.format(setting, e.message))
                 except any as e:
-                    self.logger.error('Could not load setting "{}" due to {}'
-                                      ''.format(setting, e.msg))
-                    
-        area = settings.value("docks/properties/area", 
-                              QtCore.Qt.RightDockWidgetArea)
-        geometry = settings.value("docks/properties/geometry", 
-                             self.ui.dockWidgetProperties.geometry())
-        self.ui.addDockWidget(area, self.ui.dockWidgetProperties)
-        self.ui.dockWidgetProperties.setGeometry(geometry)
+                    self.logger.error('Could not load setting "{}" because {}'
+                                      ''.format(setting, e.message))
         
         # print all saved settings
         for i in settings.allKeys():

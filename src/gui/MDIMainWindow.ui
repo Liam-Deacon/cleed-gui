@@ -939,9 +939,6 @@
    <property name="toolTip">
     <string>Launch Last Used Script</string>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+Alt+L</string>
-   </property>
   </action>
   <action name="showScriptAction">
    <property name="checkable">
