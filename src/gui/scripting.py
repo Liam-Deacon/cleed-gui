@@ -145,6 +145,10 @@ class CLEEDConsoleWidget(QtGui.QWidget):
         self.tabWidget.addTab(self.ipyConsole, 'Console')
         self.tabWidget.addTab(edit_widget, 'Editor')
         
+        self.scriptEdit.textChanged.connect(lambda:  
+                    self.tabWidget.setTabText(1, "{} *".format(
+                        str(self.tabWidget.tabText(1)).rstrip(' *'))))
+        
         self.ipyConsole.pushVariables(
             {"app": self.parent(),
              "console": self.ipyConsole
@@ -162,6 +166,9 @@ class CLEEDConsoleWidget(QtGui.QWidget):
                                  "print_function, division, unicode_literals",
                                  hidden=True)
         
+        self.tabWidget.setTabText(1, "{}".format(
+                        str(self.tabWidget.tabText(1)).rstrip(' *')))
+        
     def _run(self):
         self.ipyConsole._execute(str(
                 self.scriptEdit.toPlainText()).rstrip('\n'), False)
@@ -174,15 +181,49 @@ class CLEEDConsoleWidget(QtGui.QWidget):
             else:
                 startpath = self.lastpath
         
-        filepath = str(QtGui.QFileDialog.getOpenFileName(parent=None, 
-                                                   caption='Open Script', 
-                                                   directory=startpath))
+        filters = ['Python Script (*.py)',
+                   'Text File (*.txt)', 
+                   'All Files (*)']
         
-        if os.path.exists(filepath):
-            print ('now load %s' % filepath)
+        filename = str(QtGui.QFileDialog.getOpenFileName(parent=None, 
+                                                         caption='Open Script', 
+                                                         directory=startpath,
+                                                         filter=';;'.join(filters)
+                                                         ))
+        
+        try:
+            with open(filename, 'r') as f:
+                self.scriptEdit.setPlainText(''.join(f.readlines()))
+                self.tabWidget.setTabText(1, 'Editor ({})'
+                                          ''.format(os.path.basename(filename))
+                                          )
+        except any as e:
+            err = QtGui.QErrorMessage(parent=self)
+            err.showMessage("Failed to open '{}' \n\n({})"
+                            "".format(filename, e.msg))
+            
     
     def _save(self):
-        print('save script to file here')
+        filters = ['Python Script (*.py)',
+                   'Text File (*.txt)', 
+                   'All Files (*)']
+        fd = QtGui.QFileDialog(self)
+        filename = str(fd.getSaveFileName(self, 
+                                          caption='Save script', 
+                                          directory=os.path.expanduser('~/'),
+                                          filter=';;'.join(filters)
+                                          ))
+
+        try:
+            with open(filename, 'w') as f:
+                f.write(self.scriptEdit.toPlainText())
+                self.tabWidget.setTabText(1, 'Editor ({})'
+                                          ''.format(os.path.basename(filename))
+                                          )
+        except any as e:
+            err = QtGui.QErrorMessage(parent=self)
+            err.showMessage("Failed to write to '{}' \n\n({})"
+                            "".format(filename, e.msg))
         
 
 def main():
