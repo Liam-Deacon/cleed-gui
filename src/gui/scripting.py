@@ -41,6 +41,8 @@ may need to be changed to::
 from __future__ import print_function, unicode_literals
 from __future__ import absolute_import, division, with_statement
 
+import os
+
 # Set the QT API to PyQt4
 from qtbackend import QtGui
 
@@ -95,6 +97,9 @@ class CLEEDConsoleWidget(QtGui.QWidget):
     """ 
     Customised IPython widget for CLEED. 
     """
+    
+    lastpath = os.path.expanduser('~')
+    
     def __init__(self, parent=None):
         super(CLEEDConsoleWidget, self).__init__(parent)
         layout = QtGui.QVBoxLayout(self)
@@ -113,9 +118,15 @@ class CLEEDConsoleWidget(QtGui.QWidget):
         self.load_button = QtGui.QPushButton('Load')
         self.run_button = QtGui.QPushButton('Run...')
         
+        self.run_button.pressed.connect(self._run)
+        self.save_button.pressed.connect(self._save)
+        self.load_button.pressed.connect(self._load)
+        
         try:
             import res_rc
-            
+            self.save_button.setIcon(QtGui.QIcon('res/save.svg'))
+            self.load_button.setIcon(QtGui.QIcon('res/folder_fill.svg'))
+            self.run_button.setIcon(QtGui.QIcon('res/play.svg'))
         except:
             pass
         
@@ -150,6 +161,28 @@ class CLEEDConsoleWidget(QtGui.QWidget):
         self.ipyConsole._execute("from __future__ import "
                                  "print_function, division, unicode_literals",
                                  hidden=True)
+        
+    def _run(self):
+        self.ipyConsole._execute(str(
+                self.scriptEdit.toPlainText()).rstrip('\n'), False)
+        
+    def _load(self):
+        # start at last known directory
+        if os.path.exists(self.lastpath):
+            if os.path.isfile(self.lastpath):
+                startpath = os.path.dirname(self.lastpath)
+            else:
+                startpath = self.lastpath
+        
+        filepath = str(QtGui.QFileDialog.getOpenFileName(parent=None, 
+                                                   caption='Open Script', 
+                                                   directory=startpath))
+        
+        if os.path.exists(filepath):
+            print ('now load %s' % filepath)
+    
+    def _save(self):
+        print('save script to file here')
         
 
 def main():
