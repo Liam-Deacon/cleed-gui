@@ -51,6 +51,8 @@ from IPython.qt.console.rich_ipython_widget import RichIPythonWidget
 from IPython.qt.inprocess import QtInProcessKernelManager
 from IPython.lib import guisupport
 
+from highlighter import PythonHighlighter
+
 
 class QIPythonWidget(RichIPythonWidget):
     """ 
@@ -98,7 +100,7 @@ class CLEEDConsoleWidget(QtGui.QWidget):
     Customised IPython widget for CLEED. 
     """
     
-    lastpath = os.path.expanduser('~')
+    lastpath = os.path.expanduser(os.path.join('~', 'script.py'))
     
     def __init__(self, parent=None):
         super(CLEEDConsoleWidget, self).__init__(parent)
@@ -111,8 +113,6 @@ class CLEEDConsoleWidget(QtGui.QWidget):
         
         self.tabWidget = QtGui.QTabWidget()
         layout.addWidget(self.tabWidget)
-
-        from highlighter import PythonHighlighter
         
         self.save_button = QtGui.QPushButton('Save')
         self.load_button = QtGui.QPushButton('Load')
@@ -147,10 +147,59 @@ class CLEEDConsoleWidget(QtGui.QWidget):
         
         self.scriptEdit.textChanged.connect(lambda:  
                     self.tabWidget.setTabText(1, "{} *".format(
-                        str(self.tabWidget.tabText(1)).rstrip(' *'))))
+                        str(self.tabWidget.tabText(1)).rstrip(' *')) 
+                                if str(self.scriptEdit.toPlainText()) != ''
+                                else 'Editor'))
+        #from PyQt4 import QtGui, QtCore
+        save_action = QtGui.QAction(QtGui.QIcon("res/save.svg"), 
+                                    "&Save", 
+                                    self.scriptEdit,
+                                    shortcut="Ctrl+S",
+                                    triggered=lambda: self._save())
+        load_action = QtGui.QAction(QtGui.QIcon("res/folder_fill.svg"), 
+                                    "&Load", 
+                                    self.scriptEdit,
+                                    shortcut="Ctrl+O",
+                                    triggered=lambda: self._load())
+        run_action = QtGui.QAction(QtGui.QIcon("res/play.svg"), 
+                                   "&Run", 
+                                   self.scriptEdit,
+                                   shortcut="Ctrl+R",
+                                   triggered=lambda: self._run())
+        
+        # doesn't work on scriptEdit tab!?
+        switch = lambda: self.tabWidget.setCurrentIndex(0)
+                            #self.tabWidget.currentIndex()+1 % 2) 
+        
+        switch_action = QtGui.QAction(QtGui.QIcon('res/link.svg'),
+                                      "S&witch",
+                                      self.scriptEdit,
+                                      shortcut="Ctrl+E",
+                                      triggered=switch
+                                      )
+        
+        self.scriptEdit.addAction(save_action)
+        self.scriptEdit.addAction(load_action)
+        self.scriptEdit.addAction(run_action)
+        self.scriptEdit.addAction(switch_action)
+
+        switch = lambda: self.tabWidget.setCurrentIndex(1)
+        
+        self.tabWidget.currentChanged.connect(lambda x: 
+                self.scriptEdit.setFocus() if x == 1 
+                else self.ipyConsole._control.setFocus())
+        
+        switch_action = QtGui.QAction(QtGui.QIcon('res/link.svg'),
+                                      "S&witch",
+                                      self.scriptEdit,
+                                      shortcut="Ctrl+E",
+                                      triggered=switch
+                                      )
+        
+        self.ipyConsole.addAction(switch_action)
         
         self.ipyConsole.pushVariables(
-            {"app": self.parent(),
+            {"app": self.parent() or self,
              "console": self.ipyConsole
              })
         self.ipyConsole.printText("The application handle variable 'app' " 
@@ -163,40 +212,75 @@ class CLEEDConsoleWidget(QtGui.QWidget):
         
         # initialise with specific modules loaded
         self.ipyConsole._execute("from __future__ import "
-                                 "print_function, division, unicode_literals",
+                                 "division, unicode_literals",
                                  hidden=True)
         
         self.tabWidget.setTabText(1, "{}".format(
                         str(self.tabWidget.tabText(1)).rstrip(' *')))
         
+        # default is to focus control on IPython input
+        self.ipyConsole._control.setFocus()
+        
+#         from IPython.qt.console.completion_lexer import CompletionLexer
+#         from pygments.lexers.python import PythonLexer
+#         
+#         self.scriptEdit.lexer = CompletionLexer(PythonLexer())
+#         
+#         self.scriptEdit.completer = QtGui.QCompleter()
+#         
+#         completer = self.scriptEdit.completer
+#         completer.setWidget(self.scriptEdit)
+#         completer.setCompletionMode(QtGui.QCompleter.PopupCompletion)
+#         #completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+# 
+#         self.scriptEdit.textChanged.connect(self._updateAutoCompleter)
+#     
+#     def _updateAutoCompleter(self):
+#         self.scriptEdit.model = QtGui.QStringListModel()
+#         line = self._currentEditorLine()
+#         self.scriptEdit.completer.setModel(self.scriptEdit.model)
+#         print(
+#                             self.scriptEdit.lexer.get_context(line or '') or [])
+    
+    def _currentEditorLine(self):
+        return self.scriptEdit.textCursor().blockNumber()
+    
+    def _getEditorLine(self, i=None):
+        i = self._currentEditorLine() if i is None else i
+        return str(self.scriptEdit.toPlainText()).split('\n')[i]
+    
     def _run(self):
+        self.tabWidget.setCurrentIndex(0)
+        script_name = str(self.tabWidget.tabText(1
+                            )).rstrip(' *').lstrip('Editor')
+        if script_name.startswith('(') and script_name.endswith(')'):
+            script_name = script_name[1:-1]
+        self.ipyConsole.printText('Executing {}...'
+                                  ''.format("'" + script_name + "'" 
+                                            if script_name != ''
+                                            else 'custom script'))
         self.ipyConsole._execute(str(
                 self.scriptEdit.toPlainText()).rstrip('\n'), False)
         
     def _load(self):
-        # start at last known directory
-        if os.path.exists(self.lastpath):
-            if os.path.isfile(self.lastpath):
-                startpath = os.path.dirname(self.lastpath)
-            else:
-                startpath = self.lastpath
-        
         filters = ['Python Script (*.py)',
                    'Text File (*.txt)', 
                    'All Files (*)']
-        
         filename = str(QtGui.QFileDialog.getOpenFileName(parent=None, 
-                                                         caption='Open Script', 
-                                                         directory=startpath,
-                                                         filter=';;'.join(filters)
-                                                         ))
+                                          caption='Open Script', 
+                                          directory=self.lastpath,
+                                          filter=';;'.join(filters)
+                                          ))
+        
+        if not filename: return  # user cancelled
         
         try:
             with open(filename, 'r') as f:
                 self.scriptEdit.setPlainText(''.join(f.readlines()))
-                self.tabWidget.setTabText(1, 'Editor ({})'
-                                          ''.format(os.path.basename(filename))
-                                          )
+                basename = os.path.basename(filename)
+                self.tabWidget.setTabText(1, 'Editor ({})'.format(basename))
+                self.lastpath = filename
+                
         except any as e:
             err = QtGui.QErrorMessage(parent=self)
             err.showMessage("Failed to open '{}' \n\n({})"
@@ -207,23 +291,27 @@ class CLEEDConsoleWidget(QtGui.QWidget):
         filters = ['Python Script (*.py)',
                    'Text File (*.txt)', 
                    'All Files (*)']
-        fd = QtGui.QFileDialog(self)
-        filename = str(fd.getSaveFileName(self, 
+        filename = str(QtGui.QFileDialog.getSaveFileName(self, 
                                           caption='Save script', 
-                                          directory=os.path.expanduser('~/'),
+                                          directory=self.lastpath,
                                           filter=';;'.join(filters)
                                           ))
-
+        if not filename: return  # user cancelled
+        
         try:
             with open(filename, 'w') as f:
                 f.write(self.scriptEdit.toPlainText())
-                self.tabWidget.setTabText(1, 'Editor ({})'
-                                          ''.format(os.path.basename(filename))
-                                          )
-        except any as e:
+                basename = os.path.basename(filename)
+                self.tabWidget.setTabText(1, 'Editor ({})'.format(basename))
+                self.lastpath = filename
+                
+        except IOError as e:
             err = QtGui.QErrorMessage(parent=self)
-            err.showMessage("Failed to write to '{}' \n\n({})"
-                            "".format(filename, e.msg))
+            err.showMessage("Failed to write script {} {}"
+                            "".format("to \'" + filename  + "'" 
+                                      if filename else '', 
+                                      '\n\n' + e.message 
+                                      if e.message != ''else ''))
         
 
 def main():
