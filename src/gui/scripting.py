@@ -54,6 +54,13 @@ from IPython.lib import guisupport
 from highlighter import PythonHighlighter
 
 
+# optional support
+try:
+    from spelltextedit import SpellTextEdit as TextEdit
+except ImportError:
+    sys.stderr.write('PyEnchant not installed - unable to spell check text\n')
+    TextEdit = QtGui.QTextEdit
+
 class QIPythonWidget(RichIPythonWidget):
     """ 
     Convenience class for a live IPython console widget. 
@@ -93,6 +100,133 @@ class QIPythonWidget(RichIPythonWidget):
     def executeCommand(self,command):
         """ Execute a command in the frame of the console widget """
         self._execute(command,False)
+        
+ 
+class LineTextWidget(QtGui.QFrame):
+    class NumberBar(QtGui.QWidget):
+        def __init__(self, *args):
+            QtGui.QWidget.__init__(self, *args)
+            self.edit = None
+            # This is used to update the width of the control.
+            # It is the highest line that is currently visibile.
+            self.highest_line = 0
+ 
+        def setTextEdit(self, edit):
+            self.edit = edit
+ 
+        def update(self, *args):
+            '''
+            Updates the number bar to display the current set of numbers.
+            Also, adjusts the width of the number bar if necessary.
+            '''
+            # The + 4 is used to compensate for the current line being bold.
+            width = self.fontMetrics().width(str(self.highest_line)) + 4
+            if self.width() != width:
+                self.setFixedWidth(width)
+            QtGui.QWidget.update(self, *args)
+ 
+        def paintEvent(self, event):
+            contents_y = self.edit.verticalScrollBar().value()
+            page_bottom = contents_y + self.edit.viewport().height()
+            font_metrics = self.fontMetrics()
+            current_block = self.edit.document().findBlock(
+                                    self.edit.textCursor().position())
+ 
+            painter = QtGui.QPainter(self)
+ 
+            line_count = 0
+            # Iterate over all text blocks in the document.
+            block = self.edit.document().begin()
+            while block.isValid():
+                line_count += 1
+ 
+                # The top left position of the block in the document
+                position = self.edit.document().documentLayout().blockBoundingRect(block).topLeft()
+ 
+                # Check if the position of the block is out side of the visible
+                # area.
+                if position.y() > page_bottom:
+                    break
+ 
+                # We want the line number for the selected line to be bold.
+                bold = False
+                if block == current_block:
+                    bold = True
+                    font = painter.font()
+                    font.setBold(True)
+                    painter.setFont(font)
+ 
+                # Draw the line number right justified at the y position of the
+                # line. 3 is a magic padding number. drawText(x, y, text).
+                painter.drawText(self.width() - 
+                    font_metrics.width(str(line_count)) - 3, 
+                        round(position.y()) - contents_y + font_metrics.ascent(), 
+                            str(line_count))
+ 
+                # Remove the bold style if it was set previously.
+                if bold:
+                    font = painter.font()
+                    font.setBold(False)
+                    painter.setFont(font)
+ 
+                block = block.next()
+ 
+            self.highest_line = line_count
+            painter.end()
+ 
+            QtGui.QWidget.paintEvent(self, event)
+ 
+ 
+    def __init__(self, edit=None, *args):
+        QtGui.QFrame.__init__(self, *args)
+ 
+        self.setFrameStyle(QtGui.QFrame.StyledPanel | QtGui.QFrame.Sunken)
+ 
+        self.edit = edit or QtGui.QTextEdit()
+        self.edit.setFrameStyle(QtGui.QFrame.NoFrame)
+        try:
+            self.edit.setAcceptRichText(False)
+        except AttributeError:
+            pass
+            
+        self.number_bar = self.NumberBar()
+        self.number_bar.setTextEdit(self.edit)
+ 
+        hbox = QtGui.QHBoxLayout(self)
+        hbox.setSpacing(0)
+        hbox.setMargin(0)
+        hbox.addWidget(self.number_bar)
+        hbox.addWidget(self.edit)
+ 
+        self.edit.installEventFilter(self)
+        self.edit.viewport().installEventFilter(self)
+ 
+    def eventFilter(self, object, event):
+        # Update the line numbers for all events on the text edit and the viewport.
+        # This is easier than connecting all necessary singals.
+        if object in (self.edit, self.edit.viewport()):
+            self.number_bar.update()
+            return False
+        return QtGui.QFrame.eventFilter(object, event)
+ 
+    def getTextEdit(self):
+        return self.edit
+
+
+class PythonTextEdit(TextEdit):
+    """
+    TextEdit widget for writing Python code
+    """
+    def __init__(self, parent=None):
+        super(PythonTextEdit, self).__init__(parent)
+        self.highlighter = PythonHighlighter(self.document())
+    
+    def _currentEditorLine(self):
+        return self.scriptEdit.textCursor().blockNumber()
+    
+    def _getEditorLine(self, i=None):
+        i = self._currentEditorLine() if i is None else i
+        return str(self.scriptEdit.toPlainText()).split('\n')[i]
 
 
 class CLEEDConsoleWidget(QtGui.QWidget):
@@ -134,13 +268,16 @@ class CLEEDConsoleWidget(QtGui.QWidget):
         button_layout.addWidget(self.save_button)
         button_layout.addWidget(self.run_button)
         
-        self.scriptEdit = QtGui.QPlainTextEdit()
-        self.highlighter = PythonHighlighter(self.scriptEdit.document())
-        edit_layout.addWidget(self.scriptEdit)
+        self.lineTextWidget = LineTextWidget(edit=PythonTextEdit()) 
+        self.scriptEdit = self.lineTextWidget.getTextEdit() 
+        edit_layout.addWidget(self.lineTextWidget)
         edit_layout.addLayout(button_layout)
         
         edit_widget = QtGui.QWidget()
         edit_widget.setLayout(edit_layout)
+        
+        self.scriptEdit.setFrameStyle(QtGui.QFrame.Panel | 
+                                      QtGui.QFrame.Sunken)
         
         self.tabWidget.addTab(self.ipyConsole, 'Console')
         self.tabWidget.addTab(edit_widget, 'Editor')
@@ -241,13 +378,6 @@ class CLEEDConsoleWidget(QtGui.QWidget):
 #         self.scriptEdit.completer.setModel(self.scriptEdit.model)
 #         print(
 #                             self.scriptEdit.lexer.get_context(line or '') or [])
-    
-    def _currentEditorLine(self):
-        return self.scriptEdit.textCursor().blockNumber()
-    
-    def _getEditorLine(self, i=None):
-        i = self._currentEditorLine() if i is None else i
-        return str(self.scriptEdit.toPlainText()).split('\n')[i]
     
     def _run(self):
         self.tabWidget.setCurrentIndex(0)
