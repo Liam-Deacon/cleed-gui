@@ -42,9 +42,10 @@ from __future__ import print_function, unicode_literals
 from __future__ import absolute_import, division, with_statement
 
 import os
+import sys
 
 # Set the QT API to PyQt4
-from qtbackend import QtGui
+from qtbackend import QtGui, QtCore
 
 # Import the console machinery from ipython
 from IPython.qt.console.rich_ipython_widget import RichIPythonWidget
@@ -60,6 +61,7 @@ try:
 except ImportError:
     sys.stderr.write('PyEnchant not installed - unable to spell check text\n')
     TextEdit = QtGui.QTextEdit
+
 
 class QIPythonWidget(RichIPythonWidget):
     """ 
@@ -100,7 +102,116 @@ class QIPythonWidget(RichIPythonWidget):
     def executeCommand(self,command):
         """ Execute a command in the frame of the console widget """
         self._execute(command,False)
-        
+
+
+class DictionaryCompleter(QtGui.QCompleter):
+    def __init__(self, parent=None):
+        words = []
+        try:
+            f = open("/usr/share/dict/words","r")
+            for word in f:
+                words.append(word.strip())
+            f.close()
+        except IOError:
+            print("dictionary not in anticipated location")
+        QtGui.QCompleter.__init__(self, words, parent)
+
+
+class CompletionTextEdit(TextEdit):
+    def __init__(self, parent=None, completer=None):
+        super(CompletionTextEdit, self).__init__(parent)
+        self.setMinimumWidth(400)
+        self.completer = None
+        self.setCompleter(completer or QtGui.QCompleter())
+        self.moveCursor(QtGui.QTextCursor.End)
+
+    def setCompleter(self, completer):
+        if self.completer:
+            try:
+                self.disconnect(self.completer, 0, self, 0)
+            except:
+                pass
+        if not completer:
+            return
+
+        completer.setWidget(self)
+        completer.setCompletionMode(QtGui.QCompleter.PopupCompletion)
+        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+        self.completer = completer
+        self.connect(self.completer,
+                     QtCore.SIGNAL("activated(const QString&)"), 
+                     self.insertCompletion)
+
+    def insertCompletion(self, completion):
+        tc = self.textCursor()
+        extra = (completion.length() -
+            self.completer.completionPrefix().length())
+        tc.movePosition(QtGui.QTextCursor.Left)
+        tc.movePosition(QtGui.QTextCursor.EndOfWord)
+        tc.insertText(completion.right(extra))
+        self.setTextCursor(tc)
+
+    def textUnderCursor(self):
+        tc = self.textCursor()
+        tc.select(QtGui.QTextCursor.WordUnderCursor)
+        return tc.selectedText()
+
+    def focusInEvent(self, event):
+        if self.completer:
+            self.completer.setWidget(self);
+        QtGui.QTextEdit.focusInEvent(self, event)
+
+    def keyPressEvent(self, event):
+        if self.completer and self.completer.popup().isVisible():
+            if event.key() in (
+            QtCore.Qt.Key_Enter,
+            QtCore.Qt.Key_Return,
+            QtCore.Qt.Key_Escape,
+            QtCore.Qt.Key_Tab,
+            QtCore.Qt.Key_Backtab):
+                event.ignore()
+                return
+
+        try:
+            ## has ctrl-E been pressed??
+            isShortcut = (event.modifiers() == QtCore.Qt.ControlModifier and
+                          event.key() == QtCore.Qt.Key_E)
+            if (not self.completer or not isShortcut):
+                QtGui.QTextEdit.keyPressEvent(self, event)
+    
+            ## ctrl or shift key on it's own??
+            ctrlOrShift = event.modifiers() in (QtCore.Qt.ControlModifier ,
+                    QtCore.Qt.ShiftModifier)
+            if ctrlOrShift and event.text().isEmpty():
+                # ctrl or shift key on it's own
+                return
+    
+            eow = QtCore.QString("~!@#$%^&*()_+{}|:\"<>?,./;'[]\\-=") #end of word
+    
+            hasModifier = ((event.modifiers() != QtCore.Qt.NoModifier) and
+                            not ctrlOrShift)
+            completionPrefix = str(self.textUnderCursor())
+    
+            if (not isShortcut and (hasModifier or str(event.text()) == '' or
+                                    len(completionPrefix) < 3 or
+                                    eow.contains(str(event.text())[-1]))):
+                self.completer.popup().hide()
+                return
+    
+            if (completionPrefix != self.completer.completionPrefix()):
+                self.completer.setCompletionPrefix(completionPrefix)
+                popup = self.completer.popup()
+                popup.setCurrentIndex(
+                    self.completer.completionModel().index(0,0))
+    
+            cr = self.cursorRect()
+            cr.setWidth(self.completer.popup().sizeHintForColumn(0)
+                + self.completer.popup().verticalScrollBar().sizeHint().width())
+            self.completer.complete(cr) ## popup it up!
+            
+        except AttributeError:
+            pass
+ 
  
 class LineTextWidget(QtGui.QFrame):
     class NumberBar(QtGui.QWidget):
@@ -213,7 +324,7 @@ class LineTextWidget(QtGui.QFrame):
         return self.edit
 
 
-class PythonTextEdit(TextEdit):
+class PythonTextEdit(CompletionTextEdit):
     """
     TextEdit widget for writing Python code
     """
