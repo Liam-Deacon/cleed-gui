@@ -4,7 +4,9 @@ Enables python auto-completion for given textEdit
 """
 
 from jedi import Script
-from qtbackend import QtGui
+from qtbackend import QtGui, QtCore
+
+import sys
 
 # optional support for enchant spell-checking
 try:
@@ -116,10 +118,11 @@ class CompletionTextEdit(TextEdit):
         except AttributeError:
             pass
 
-class AutoCompleter(QtGui.Completer):
+class AutoCompleter(QtGui.QCompleter):
     def __init__(self, parent=None, text_edit=None):
         super(AutoCompleter, self).__init__(parent)
         self.text_edit = None;
+        self.script = None
         self.setTextEdit(text_edit)
         self.update()
     
@@ -130,19 +133,39 @@ class AutoCompleter(QtGui.Completer):
         if self.text_edit is not None:
             # unset TextEdit here
             pass
-        
-    def _getCompletionDictionary(self, line):
-        script = Script()
+    
+        self.text_edit = textEdit
+        self.text_edit.textChanged.connect(self.update)
+    
+    def _textString(self):
+        return str(self.text_edit.toPlainText())
+    
+    def _currentPos(self):
+        return self.text_edit.textCursor().columnNumber()
+    
+    def _currentLine(self):
+        return self.text_edit.textCursor().blockNumber()
+    
+    def _currentLineText(self):
+        return self._textString().split('\n')[self._currentLine()]
+    
+    def _getCompletionWords(self, script=None, line_no=None, col=None):
+        self.script = Script(script or self._textString(), 
+                             line_no or self._currentLine(), 
+                             col or self._currentPos())
+        return [c.word for c in self.script.completions()]
+    
+    def _getCompletions(self):
+        return self.script.completions()
     
     def update(self):
         ''' updates to give suggestions for current line of text edit '''
         try:
-            line = str(self.text_edit.toPlainText()
-                   ).split('\n')[self.textCursor().blockNumber()]
+            line = self._getCurrentLine()
         except: 
             pass
         else:
             self.setModel(QtGui.QStringListModel())
-            model.setStringList(self._getCompletionDictionary(line))
+            model.setStringList(self._getCompletionWords())
         
         

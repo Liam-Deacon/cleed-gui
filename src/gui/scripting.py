@@ -228,6 +228,7 @@ class PythonTextEdit(CompletionTextEdit):
     def __init__(self, parent=None):
         super(PythonTextEdit, self).__init__(parent)
         self.highlighter = PythonHighlighter(self.document())
+        self.completer = AutoCompleter(self, self)
 
 
 class CLEEDConsoleWidget(QtGui.QWidget):
@@ -358,27 +359,6 @@ class CLEEDConsoleWidget(QtGui.QWidget):
         
         # default is to focus control on IPython input
         self.ipyConsole._control.setFocus()
-        
-#         from IPython.qt.console.completion_lexer import CompletionLexer
-#         from pygments.lexers.python import PythonLexer
-#         
-#         self.scriptEdit.lexer = CompletionLexer(PythonLexer())
-#         
-#         self.scriptEdit.completer = QtGui.QCompleter()
-#         
-#         completer = self.scriptEdit.completer
-#         completer.setWidget(self.scriptEdit)
-#         completer.setCompletionMode(QtGui.QCompleter.PopupCompletion)
-#         #completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
-# 
-#         self.scriptEdit.textChanged.connect(self._updateAutoCompleter)
-#     
-#     def _updateAutoCompleter(self):
-#         self.scriptEdit.model = QtGui.QStringListModel()
-#         line = self._currentEditorLine()
-#         self.scriptEdit.completer.setModel(self.scriptEdit.model)
-#         print(
-#                             self.scriptEdit.lexer.get_context(line or '') or [])
     
     def _run(self):
         self.tabWidget.setCurrentIndex(0)
