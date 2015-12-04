@@ -228,7 +228,6 @@ class PythonTextEdit(CompletionTextEdit):
     def __init__(self, parent=None):
         super(PythonTextEdit, self).__init__(parent)
         self.highlighter = PythonHighlighter(self.document())
-        self.completer = AutoCompleter(self, self)
 
 
 class CLEEDConsoleWidget(QtGui.QWidget):
