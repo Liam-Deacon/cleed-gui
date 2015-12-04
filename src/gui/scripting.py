@@ -53,7 +53,13 @@ from IPython.qt.inprocess import QtInProcessKernelManager
 from IPython.lib import guisupport
 
 from highlighter import PythonHighlighter
-from autocomplete import AutoCompleter, CompletionTextEdit
+
+try:
+    from autocomplete import CompletionTextEdit
+except ImportError:
+    CompletionTextEdit = QtGui.QTextEdit
+    sys.stder.write('Failed to import jedi - Python autocompletion disabled\n')
+    sys.stder.flush()
 
 
 class QIPythonWidget(RichIPythonWidget):
