@@ -43,10 +43,17 @@ dist = setup(
             # If any package contains *.txt or *.rst files, include them:
             '': ['*.txt', '*.rst', '*.pyw'],
             },
-        scripts=[os.path.join("src", "cleed-gui.pyw"),
-                 os.path.join("src", "core", "rfactor.py")],
-        install_requires = ['PySide', 'IPython', 'numpy', 'scipy', 'cython',
-                            'matplotlib', 'pymol', 'phaseshifts'],
+        scripts=[os.path.join("src", "cleed_iv.pyw"),
+                 os.path.join("src", "core", "rfac.py")],
+        install_requires = ['PySide' or 'PyQt4',    # gui
+                            'IPython',              # scripting 
+                            'numpy',                # matrix operations
+                            'scipy',                # optimisation algorithms
+                            'matplotlib',           # graph plots
+                            'cython',               # CLEED wrapper
+                            'pymol',                # molecular visualiser
+                            'phaseshifts'           # phase shift calculations
+                            ],
         ext_modules=[],
         window=[os.path.join("src", "cleed-gui.pyw")],
                
