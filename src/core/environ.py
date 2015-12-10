@@ -1,7 +1,7 @@
 ##############################################################################
 # Author: Liam Deacon                                                        #
 #                                                                            #
-# Contact: liam.deacon@diamond.ac.uk                                         #
+# Contact: liam.m.deacon@gmail.com                                           #
 #                                                                            #
 # Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
 #                                                                            #
@@ -44,7 +44,7 @@ ENVVARS = ['CLEED_HOME', 'CLEED_PHASE', 'CSEARCH_LEED', 'CSEARCH_RFAC']
 ##############################################################################
 # Author: Liam Deacon                                                        #
 #                                                                            #
-# Contact: liam.deacon@diamond.ac.uk                                         #
+# Contact: liam.m.deacon@gmail.com                                           #
 #                                                                            #
 # Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
 #                                                                            #

@@ -4,7 +4,7 @@
 ##############################################################################
 # Author: Liam Deacon                                                        #
 #                                                                            #
-# Contact: liam.deacon@diamond.ac.uk                                         #
+# Contact: liam.m.deacon@gmail.com                                           #
 #                                                                            #
 # Copyright: Copyright (C) 2013-2014 Liam Deacon                             #
 #                                                                            #
@@ -118,12 +118,12 @@ class Unitcell(object):
         -----
         To retrieve a in terms of Angstroms use 'unitcell.a', whereas the
         internal parameter 'unitcell._a' converts a into Bohr radii 
-        (1 Bohr = 0.529Å), which is used for the muffin-tin potential
+        (1 Bohr = 0.529ï¿½), which is used for the muffin-tin potential
         calculations in libphsh (CAVPOT subroutine).
         
         """
         self.a = float(a)
-        self._a = self.a / 0.529  # (1 Bohr = 0.529Å)
+        self._a = self.a / 0.529  # (1 Bohr = 0.529ï¿½)
 
     # set c lattice parameter
     def set_c(self, c):
@@ -141,12 +141,12 @@ class Unitcell(object):
         -----
         To retrieve c in terms of Angstroms use 'unitcell.c', whereas the
         internal parameter 'unitcell._c' converts c into Bohr radii 
-        (1 Bohr = 0.529Å), which is used for the muffin-tin potential
+        (1 Bohr = 0.529ï¿½), which is used for the muffin-tin potential
         calculations in libphsh (CAVPOT subroutine).
         
         """
         self.c = float(c)
-        self._c = self.c / 0.529  # (1 Bohr = 0.529Å)
+        self._c = self.c / 0.529  # (1 Bohr = 0.529ï¿½)
 
     # set angle alpha in degrees 
     def set_alpha(self, alpha):

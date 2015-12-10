@@ -1,7 +1,7 @@
 ##############################################################################
 # Author: Liam Deacon                                                        #
 #                                                                            #
-# Contact: liam.deacon@diamond.ac.uk                                         #
+# Contact: liam.m.deacon@gmail.com                                           #
 #                                                                            #
 # Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
 #                                                                            #
@@ -327,6 +327,9 @@ class IVCurve(object):
     
 
 class IVCurvePair(object):
+    '''
+    Class for holding information on an associated pair of IV Curves
+    '''
     def __init__(self, 
                  experiment=None, 
                  theory=None,
