@@ -1121,8 +1121,9 @@ def main(argv=None):
     
     app = QtGui.QApplication(argv)
     app.processEvents()
-    pixmap = QtGui.QPixmap(os.path.abspath(
-                               os.path.join("res", "CLEED_logo.png")))
+    png_path = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), "res", "CLEED_logo.png"))
+    pixmap = QtGui.QPixmap(png_path)
     splash = QtGui.QSplashScreen(pixmap, QtCore.Qt.WindowStaysOnTopHint)
     #splash.setMask(pixmap.mask())  # this is useful if splash isn't a rectangle
     
@@ -1137,14 +1138,15 @@ def main(argv=None):
                        QtCore.Qt.AlignCenter | QtCore.Qt.AlignBottom, 
                        QtCore.Qt.blue)
     splash.show()
-
+    
     # make sure Qt really display the splash screen 
     app.processEvents()
-
+    
     app.setQuitOnLastWindowClosed(False)
     
     window = MainWindow()
     window.hide()
+    
     
     app.setWindowIcon(window.ui.windowIcon())
     
