@@ -38,6 +38,9 @@ from math import cos, sin, pi, sqrt
 import numpy as np
 
 class Spot(MillerIndex):
+    '''
+    Class for defining a LEED spot
+    '''
     def __init__(self, x, y, h, k):
         MillerIndex.__init__(self, h, k)
         self.x = x
@@ -331,7 +334,7 @@ class Pattern(Domain):
         pat = Pattern()
   
         comments = ''
-        for comment in [ln for ln in lines if ln.startswith('c')]:
+        for comment in (ln for ln in lines if ln.startswith('c')):
             comments += '{}\n'.format(lines.pop(lines.index(comment)).split('c')[1].replace(':', '').lstrip())
             
         pat.title = comments
@@ -466,17 +469,9 @@ class Pattern(Domain):
 
 
 def is_fraction(numerator, denominator):
-    ''' Makes nicer fractions
-    
-    Returns
-    -------
-    int : return code
-        -1 = zero
-         0 = integer number
-         1 = fraction
-    '''
+    ''' Makes nicer fractions '''
     if numerator == 0:
-        return -1
+        return numerator, denominator
 
     if denominator < 0:
         number = -denominator/2;
@@ -487,15 +482,15 @@ def is_fraction(numerator, denominator):
     for i in range(2, number+1):
         if (numerator % i == 0) and (denominator % i == 0): 
             ggt = i
+            break
 
     numerator /= ggt
     denominator /= ggt
 
     if numerator % denominator == 0:
         numerator /= denominator
-        return 0
-    else:
-        return 1
+    
+    return numerator, denominator
     
 if __name__ == '__main__':
     filename = r"C:\\Users\\kss07698\\Dropbox\\Windows Tweaks\\CLEED_tools_win32\\cleed\\src\\CLEED\\examples\\patt\\bcc100.2x1_1.patt"
