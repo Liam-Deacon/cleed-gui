@@ -109,7 +109,7 @@ To do
     
  #. Embedding of a model visualisation tool such as 
     `jmol <http://jmol.sourceforge.net/>`_, 
-    `gdis <http://gdis.sourceforge.net/>`_` or 
+    `gdis <http://gdis.sourceforge.net/>`_ or 
     `Avogadro <http://avogadro.cc/wiki/Python_PyQt4>`_
 
  #. Wrapping CLEED functions with Python and call as a script (allow automation 
