@@ -102,7 +102,7 @@ To do
 =====
 
 
- #. Full implementation of GUI front end (Qt ui files are provided in the `res/`` directory for anyone 
+ #. Full implementation of GUI front end (Qt ui files are provided in the `res/` directory for anyone 
     wishing to undertake this challenge). Other frontends are welcome (I use Qt 
     due to familiarity/experience). For those wishing a sneak preview, try executing
     ``main.pyw``
