@@ -108,9 +108,9 @@ To do
     ``main.pyw``
     
  #. Embedding of a model visualisation tool such as 
-    `jmol <http://jmol.sourceforge.net/>_, 
-    `gdis <http://gdis.sourceforge.net/>_` or 
-    `Avogadro <http://avogadro.cc/wiki/Python_PyQt4>_
+    `jmol <http://jmol.sourceforge.net/>`_, 
+    `gdis <http://gdis.sourceforge.net/>`_` or 
+    `Avogadro <http://avogadro.cc/wiki/Python_PyQt4>`_
 
  #. Wrapping CLEED functions with Python and call as a script (allow automation 
     and streamlining of the LEED calculation process and data processing)
