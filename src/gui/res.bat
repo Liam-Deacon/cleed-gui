@@ -1,9 +1,9 @@
-@echo OFF
+@echo OFF&setlocal
 REM Update resource file
-set RES="%DROPBOX%\Programming\Python\cleed-gui\src\gui"
+for %%i in ("%~dp0") do set "folder=%%~fi"
+set RES="%folder%"
 echo Updating resource file: %res%\res\res.qrc...
 set COMPILER=pyrcc4
-cd %RES%
-%COMPILER% res\res.qrc -o res_rc.py
+%COMPILER% "%RES%\res\res.qrc" -o "%RES%\res_rc.py"
 echo Updated 'res_rc.py'
 pause

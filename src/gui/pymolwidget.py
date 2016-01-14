@@ -213,10 +213,10 @@ class PyMolWidgetDemo(QtGui.QMainWindow):
     '''demo class for showing PyMolWidget class''' 
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
-        usr = os.path.expanduser('~/')
+        res = os.path.join(os.path.dirname(__file__), "..", "..", "..", "res")
         widget = PymolQtWidget(self, False, 
-                               os.path.join(usr, 
-                                        r"Dropbox\Structures\spinel111.xyz"),
+                               os.path.join(os.path.abspath(res), "examples", 
+                                            "stuctures", "spinel111.xyz"),
                                unit_cell=True
                                )
         self.setCentralWidget(widget)
