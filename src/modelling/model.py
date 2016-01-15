@@ -853,18 +853,26 @@ class MTZ_model(Model):
         return set([atom.name for atom in self.atoms])
 
 
-# #==============================================================================
-# # Testing 
-# #==============================================================================
-# at = Atom('C', [0, 0, 0])
-# ab = Atom('Re', [0, 0, 0], tag='Re2')
-# ac = Atom('Re', [0, 0, 0], tag='Re1')
-# uc = Unitcell(1, 2, [[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-#print(uc)
-#print(set([at, ab, ac]))
-#  
-# mtz = MTZ_model(uc, atoms=[at, ab, ac])
-#mtz.load_from_file('C:\\Users\\Liam\\Dropbox\\Programming\\Python\\LEED-PyV\\phaseshifts\\test\\Re0001\\cluster_Re_bulk.i')
-#print(mtz.get_elements())
-#mtz.load_from_file('C:\\Users\\kss07698\\Desktop\\test_cluster.bak.i')
-#mtz.gen_input(filename='C:\\Users\\kss07698\\Desktop\\test_cluster.bak.i')
+if __name__ == "__main__":
+    #==============================================================================
+    # Testing 
+    #==============================================================================
+    at = Atom('C', [0, 0, 0])
+    ab = Atom('Re', [0, 0, 0], tag='Re2')
+    ac = Atom('Re', [0, 0, 0], tag='Re1')
+    uc = Unitcell(1, 2, [[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+    print(uc)
+    print(set([at, ab, ac]))
+    
+    res = os.path.abspath(os.path.join(os.path.dirname(__file__), 
+                                       '..', '..', 'res'))
+    
+    mtz = MTZ_model(uc, atoms=[at, ab, ac])
+    mtz.load_from_file(os.path.join(res, 
+                                'examples', 'phsh', 'cluster_Re_bulk.i'))
+    print(mtz.get_elements())
+    mtz.load_from_file(os.path.join(res, 
+                                'examples', 'phsh', 'test_cluster.bak.i'))
+                       
+    mtz.gen_input(filename=os.path.join(os.path.expanduser('~'), 
+                                '.CLEED-IV', 'tests', 'test_cluster.bak.i'))

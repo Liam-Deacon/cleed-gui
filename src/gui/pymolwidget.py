@@ -120,7 +120,7 @@ class PymolQtWidget(QGLWidget):
         self.resizeGL(self.width(), self.height())
         #globalSettings.settingsChanged.connect(self._updateGlobalSettings)
         self._updateGlobalSettings()
-        #self.save(r'C:\Users\kss07698\Desktop\test.mol')
+        #self.save(os.path.join('~', '.CLEED-IV', 'tests', 'test.mol')
     
     def load(self, File=None):
         if os.path.exists(File):

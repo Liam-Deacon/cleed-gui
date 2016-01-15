@@ -54,4 +54,6 @@ def inp2xyz(filename, output=None):
                       % filename+'.xyz' )
     
 if __name__ == "__main__":
-    inp2xyz(r"C:\Users\Liam\Dropbox\Windows Tweaks\CLEED_tools_win32\cleed\src\CLEED\examples\models\nio\Ni111_2x2O.inp")
+    res = os.path.join(os.path.dirname(__file__), '..', '..', 'res')
+    res = os.path.abspath(res)
+    inp2xyz(os.path.join(res, 'examples', 'models', 'nio', 'Ni111_2x2O.inp'))

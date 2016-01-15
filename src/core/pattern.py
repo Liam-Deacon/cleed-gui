@@ -493,7 +493,9 @@ def is_fraction(numerator, denominator):
     return numerator, denominator
     
 if __name__ == '__main__':
-    filename = r"C:\\Users\\kss07698\\Dropbox\\Windows Tweaks\\CLEED_tools_win32\\cleed\\src\\CLEED\\examples\\patt\\bcc100.2x1_1.patt"
+    res = os.path.join(os.path.dirname(__file__), '..', '..', 'res')
+    res = os.path.abspath(res)
+    filename = os.path.join('examples', 'patt', 'bcc100.2x1_1.patt')
     patt = Pattern.read(filename)
     print('pattern = ', patt)
     print('\n'.join([repr(spot) for spot in patt.calculate_spots() if spot.index() == (0, 0)]))

@@ -536,7 +536,8 @@ def inp2xyz(filename, xyz_filename=None):
 
 if __name__ == '__main__':
     b = BaseModel(atoms=[])
-    filename = r'C:\\Users\\kss07698\\Dropbox\\LEED_programs\\CLEED\\CLEED_DIS_1309\\EXAMPLES\\NIO\\Ni111_2x2O.bul'
+    res = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'res'))
+    filename = os.path.join(res, 'examples', 'models', 'nio', 'Ni111_2x2O.bul')
     b = BulkModel(atoms=[])
     print(str(b))
     print(BaseModel.eval(filename))

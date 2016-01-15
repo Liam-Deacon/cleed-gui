@@ -814,10 +814,10 @@ class IVCurveGroup(MutableMapping):
         rf = 0.
 
 if __name__ == '__main__':
-    filename = os.path.expandvars("%Dropbox%"
-                "\\LEED_programs\\CLEED\\CLEED_DIS_1309_safe-mod-mgjf\\EXAMPLES\\NIO\\Ni111_2x2O.res")
-    iv_group = IVCurveGroup.load(os.path.expandvars("%Dropbox%"
-                            "\\LEED_programs\\CLEED\\CLEED_DIS_1309\\"
-                            "EXAMPLES\\NIO\\Ni111_2x2O.ctr"))
+    res = os.path.join(os.path.dirname(__file__), '..', '..', 'res')
+    res = os.path.abspath(res)
+    filename = os.path.join(res, 'examples', 'models', 'nio', 'Ni111_2x2O.res')
+    iv_group = IVCurveGroup.load(os.path.join(res, 
+                                'examples', 'models', 'nio', 'Ni111_2x2O.ctr'))
     print(iv_group)
     

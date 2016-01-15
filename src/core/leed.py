@@ -517,8 +517,10 @@ class Params(object):
         
 if __name__ == '__main__':
     import os
+    res = os.path.join(os.path.dirname(__file__), '..', '..', 'res')
+    res = os.path.abspath(res)
     beams = BeamSet("(0., 0.5)", 
-                    os.path.expandvars("%Dropbox%\\LEED_programs\\CLEED\\CLEED_DIS_1309_safe-mod-mgjf\\EXAMPLES\\NIO\\Ni111_2x2O.res"))
+                    os.path.join(res, 'examples', 'models', 'nio' 'Ni111_2x2O.res'))
     
     print(repr(beams[0]))
     from numpy import array
