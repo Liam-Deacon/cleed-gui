@@ -522,7 +522,7 @@ class MainWindow(QtGui.QMainWindow):
             "{email}?cc={cc}?subject={name} feedback&body={body}"
             "".format(email=__APP_EMAIL__, 
                       name=__APP_NAME__, 
-                      cc="georg.held@reading.ac.uk",
+                      cc="g.held@reading.ac.uk",
                       body=str(body))))
 
     def copy(self):
@@ -657,9 +657,9 @@ class MainWindow(QtGui.QMainWindow):
     def openCLEEDManual(self):
         '''open pdf manual'''
         manual = os.path.abspath(os.path.join(
-                    '.', 'gui', 'help', 'pdf', 'CLEED_manual.pdf'))
+                    os.path.dirname(__file__), 'help', 'pdf', 'CLEED_manual.pdf'))
         if sys.platform.startswith('darwin'):
-            success = os.system(manual)
+            success = os.system('xdg-open' + manual)
         elif sys.platform.startswith('linux'):
             success = os.system(manual)
         elif sys.platform.startswith('win32'):
