@@ -1,3 +1,10 @@
+![Language](https://img.shields.io/badge/language-python-ff69b4.svg "Python programming language")
+![Domain](https://img.shields.io/badge/domain-scientific_computing-20B2AA.svg "Scientific Computing")
+[![License](http://img.shields.io/badge/license-gpl3-blue.svg "GNU Public License v3.0")](http://www.gnu.org/licenses/gpl-3.0.html)
+[![Implementation](http://img.shields.io/badge/implementation-cpython-blue.svg "Requires CPython")](https://www.python.org/downloads/)
+![Issues](https://img.shields.io/badge/issues-2-yellow.svg "Issues")
+![TestCoverage](https://img.shields.io/badge/test_coverage-to_do-lightgray.svg)
+
 # cleed-gui #
 This package provides a PyQt GUI frontend to CLEED, used for computing I(V) 
 curves in low energy electron diffraction (LEED).
