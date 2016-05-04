@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>301</width>
-    <height>256</height>
+    <width>327</width>
+    <height>288</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -28,24 +28,33 @@
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
          <widget class="QTableWidget" name="tableWidget">
+          <property name="alternatingRowColors">
+           <bool>true</bool>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectItems</enum>
+          </property>
+          <attribute name="horizontalHeaderStretchLastSection">
+           <bool>true</bool>
+          </attribute>
           <row>
            <property name="text">
-            <string>CLEED_HOME</string>
+            <string extracomment="Path to CLEED root directory">CLEED_HOME</string>
            </property>
           </row>
           <row>
            <property name="text">
-            <string>CLEED_PHASE</string>
+            <string extracomment="Specifies directory containing phase shifts library">CLEED_PHASE</string>
            </property>
           </row>
           <row>
            <property name="text">
-            <string>CSEARCH_LEED</string>
+            <string extracomment="Specifies path to LEED program">CSEARCH_LEED</string>
            </property>
           </row>
           <row>
            <property name="text">
-            <string>CSEARCH_RFAC</string>
+            <string extracomment="Specifies path to R-Factor program">CSEARCH_RFAC</string>
            </property>
           </row>
           <column>
@@ -66,9 +75,82 @@
          </widget>
         </item>
         <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <widget class="QPushButton" name="addVariableButton">
+            <property name="text">
+             <string>Add...</string>
+            </property>
+            <property name="icon">
+             <iconset resource="res/res.qrc">
+              <normaloff>:/plus.svg</normaloff>:/plus.svg</iconset>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="deleteVariableButton">
+            <property name="text">
+             <string>Delete</string>
+            </property>
+            <property name="icon">
+             <iconset resource="res/res.qrc">
+              <normaloff>:/x.svg</normaloff>:/x.svg</iconset>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="QCheckBox" name="showFullEnvironmentCheckBox">
+            <property name="text">
+             <string>Show Full Environment</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="systemEnvironmentCheckBox">
+            <property name="text">
+             <string>Use System Environment</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
          <widget class="QDialogButtonBox" name="buttonBox">
           <property name="standardButtons">
            <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok|QDialogButtonBox::RestoreDefaults</set>
+          </property>
+          <property name="centerButtons">
+           <bool>false</bool>
           </property>
          </widget>
         </item>
