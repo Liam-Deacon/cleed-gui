@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>EnvironmentDialog</class>
+ <widget class="QWidget" name="EnvironmentDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Settings</string>
+   <string>CLEED Environment</string>
   </property>
   <property name="windowIcon">
    <iconset resource="res/res.qrc">
@@ -23,7 +23,7 @@
      <item>
       <widget class="QGroupBox" name="groupBox">
        <property name="title">
-        <string>Environment</string>
+        <string>User Environment</string>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
@@ -84,6 +84,26 @@
             <property name="icon">
              <iconset resource="res/res.qrc">
               <normaloff>:/plus.svg</normaloff>:/plus.svg</iconset>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="editVariableButton">
+            <property name="text">
+             <string>Edit...</string>
             </property>
            </widget>
           </item>
