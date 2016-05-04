@@ -56,6 +56,7 @@ from argparse import ArgumentParser
 from argparse import RawDescriptionHelpFormatter
 
 import rfactor
+import iv
 
 def required_length(nmin, nmax):
     """custom action to check range"""
@@ -158,6 +159,7 @@ def main(argv=None):
         raise
     
     raise NotImplementedError("Not yet written pure python code")
+    iv_group = iv.IVCurveGroup()
     
     
 if __name__ == '__main__':

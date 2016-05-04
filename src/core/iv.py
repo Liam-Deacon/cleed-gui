@@ -539,6 +539,11 @@ class IVCurvePair(object):
     
 
 class IVCurveGroup(MutableMapping):
+    """
+    A collection of IVCurvePairs which comprise a dataset 
+    (e.g. experimental and theoretical IVs for a set of beams 
+    at a given angle of incidence)
+    """
     def __init__(self, 
                  group_name=None, 
                  datasets=[], 

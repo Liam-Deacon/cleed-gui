@@ -70,7 +70,16 @@ class MplCanvas(FigureCanvas):
                     QtGui.QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
 
- 
+class MplAxisSettings(object):
+    ''' class for providing axis settings '''
+    pass
+
+class MplFigureSettings(object):
+    ''' class to provide settings for a given plot '''
+    pass
+
+
+
 class MatplotlibWidget(QtGui.QWidget):
     '''class to provide a matplotlib Qt widget'''
     PICKER = 5
@@ -697,7 +706,8 @@ class IVCurveWidget(MatplotlibWidget):
     
     
 class IVGroupWidget(MatplotlibWidget):
-    def __init__(self):
+    def __init__(self, parent=None, iv_group=None, offset=0.20,  
+                 *args, **kwargs):
         raise NotImplementedError
 
 
