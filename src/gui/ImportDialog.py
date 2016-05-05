@@ -27,7 +27,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
 SOFTWARE.
 '''
-from PyQt4 import QtGui, uic
+from qtbackend import QtGui, QtLoadUI
 import res_rc
 
 
@@ -42,7 +42,11 @@ class ImportDialog(QtGui.QDialog):
         self.action = None
         
         # dynamically load ui
-        self.ui = uic.loadUi("gui/ImportDialog.ui", self)
+        try:
+            self.ui = QtLoadUI("gui/ImportDialog.ui", self)
+        except IOError:
+            self.ui = QtLoadUI(os.path.join(os.path.dirname(__file__), 
+                                            "ImportDialog.ui"), self)
         self.initUi()
         
         if isinstance(model, str):

@@ -38,9 +38,15 @@ if variant == 'PySide':
             eval("QtCore.{} = QtCore.{}".format(attr[4:], attr))
     # This will be passed on to new versions of matplotlib
     os.environ['QT_API'] = 'pyside'
-    def QtLoadUI(uifile, obj=None):
+    def QtLoadUI(uifile=None, obj=None):
         from PySide import QtUiTools
         loader = QtUiTools.QUiLoader()
+        if uifile is None:
+            import inspect
+            module = os.path.abspath(inspect.getfile(sys._getframe(1)))
+            uifile = os.path.splitext(module)[0] + '.ui'
+        if not os.path.exists(uifile):
+            raise IOError("UI file '{}' does not exist".format(uifile))
         uif = QtCore.QFile(uifile)
         uif.open(QtCore.QFile.ReadOnly)
         result = loader.load(uif, obj)
@@ -73,8 +79,14 @@ elif variant == 'PyQt4':
     QtCore.Property = QtCore.pyqtProperty
     QtCore.QString = str
     os.environ['QT_API'] = 'pyqt'
-    def QtLoadUI(uifile, obj=None):
+    def QtLoadUI(uifile=None, obj=None):
         from PyQt4 import uic
+        if uifile is None:
+            import inspect
+            module = os.path.abspath(inspect.getfile(sys._getframe(1)))
+            uifile = os.path.splitext(module)[0] + '.ui'
+        if not os.path.exists(uifile):
+            raise IOError("UI file '{}' does not exist".format(uifile))
         return uic.loadUi(uifile, obj)
 else:
     raise ImportError("Python Variant not specified")

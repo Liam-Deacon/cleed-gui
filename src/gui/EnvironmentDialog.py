@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 '''
 Created on 04 May 2016
 
@@ -27,17 +29,21 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
 SOFTWARE.
 '''
-from PyQt4 import QtGui, uic
+from __future__ import unicode_literals, print_function, with_statement
+
+from qtbackend import QtGui, QtCore, QtLoadUI
 import res_rc
 import os
 import sys
 from copy import deepcopy
 
+import sqlite3 as lite
+
 class EnvironmentDialog(QtGui.QDialog):
     '''
     Dialog class for updating system environment
     '''
-    ENV = os.environ
+    ENV = deepcopy(os.environ)
     
     DEFAULTS = {'CLEED_HOME': '',
                 'CLEED_PHASE': '',
@@ -52,9 +58,9 @@ class EnvironmentDialog(QtGui.QDialog):
         
         # dynamically load ui
         try:
-            self.ui = uic.loadUi("gui/EnvironmentDialog.ui", self)
+            self.ui = QtLoadUI("gui/EnvironmentDialog.ui", self)
         except IOError:
-            self.ui = uic.loadUi(os.path.join(os.path.dirname(__file__), 
+            self.ui = QtLoadUI(os.path.join(os.path.dirname(__file__), 
                                               "EnvironmentDialog.ui"), self)
         self.initUi()
         
@@ -63,7 +69,7 @@ class EnvironmentDialog(QtGui.QDialog):
         self.env = self.DEFAULTS 
         self.environ = deepcopy(os.environ)
             
-    def initUi(self):
+    def initUi(self, database=os.path.join(os.curdir, "cleed.db")):
         # Setup slots and signals
         self.ui.buttonBox.clicked[QtGui.QAbstractButton].connect(self.buttonPress)
         
@@ -75,6 +81,8 @@ class EnvironmentDialog(QtGui.QDialog):
         
         self.ui.tableWidget.cellChanged.connect(self.updateVariable)
         self.ui.tableWidget.verticalHeader().setVisible(True)
+        
+        self.database = database
     
     def updateVariable(self, row, col):
         var = str(self.ui.tableWidget.verticalHeaderItem(row).text())
@@ -83,16 +91,32 @@ class EnvironmentDialog(QtGui.QDialog):
     
     def showAll(self, toggled):
         if toggled:
-            rows = set(list(self.environ.keys()) + list(os.environ.keys()))
+            keys = set(list(self.environ.keys()) + list(self.ENV.keys()))
         else:
-            rows = set(self.environ.keys()) - set(os.environ.keys())
+            keys = set(self.environ.keys()) - set(os.environ.keys())
+            
+        vars = dict((k, self.environ[k]) if k in self.environ.keys() 
+                    else (k, self.ENV[k]) for k in keys)
         
-        headers = [str(self.ui.tableWidget.verticalHeaderItem(i)) 
+        headers = [str(self.ui.tableWidget.verticalHeaderItem(i).text()) 
                    for i in range(self.ui.tableWidget.rowCount())]
-        for label in rows:
-            if label not in headers:
+        
+        for key in keys:
+            if key not in headers:
+                row = self.ui.tableWidget.rowCount()
                 self.ui.tableWidget.insertRow(self.ui.tableWidget.rowCount())
+                header_item = QtGui.QTableWidgetItem(str(key))
+                self.ui.tableWidget.setVerticalHeaderItem(row, header_item)
+            else:
+                try:
+                    row = self.ui.tableWidget.findItems(key, QtCore.QtMatchEndsWith)[0].row()
+                except AttributeError:
+                    print("Need to delete {}".format(key))
+                    continue
                 
+            # update items and variable dictionary
+            self.ui.tableWidget.setItem(row, 0, QtGui.QTableWidgetItem(vars[key]))
+            self.vars[key] = vars[key] 
     
     def addVariable(self):
         new_var, ok = QtGui.QInputDialog.getText(self, "New variable...", 
