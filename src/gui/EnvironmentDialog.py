@@ -39,16 +39,18 @@ from copy import deepcopy
 
 import sqlite3 as lite
 
+from appdirs import AppDirs
+
 class EnvironmentDialog(QtGui.QDialog):
     '''
     Dialog class for updating system environment
     '''
     ENV = deepcopy(os.environ)
     
-    DEFAULTS = {'CLEED_HOME': '',
-                'CLEED_PHASE': '',
-                'CSEARCH_LEED': '',
-                'CSEARCH_RFAC': ''}
+    DEFAULTS = {'CLEED_HOME': None,
+                'CLEED_PHASE': AppDirs("phase", "CLEED").user_data_dir,
+                'CSEARCH_LEED': 'cleed',
+                'CSEARCH_RFAC': 'crfac'}
     
     def __init__(self, parent=None, model=None):
         super(EnvironmentDialog, self).__init__(parent)
@@ -61,13 +63,17 @@ class EnvironmentDialog(QtGui.QDialog):
             self.ui = QtLoadUI("gui/EnvironmentDialog.ui", self)
         except IOError:
             self.ui = QtLoadUI(os.path.join(os.path.dirname(__file__), 
-                                              "EnvironmentDialog.ui"), self)
+                                            "EnvironmentDialog.ui"), self)
         self.initUi()
         
         self.ui.show()
         
         self.env = self.DEFAULTS 
         self.environ = deepcopy(os.environ)
+        
+        # assign defaults if not present
+        all(self.environ.__set__(key, self.DEFAULTS[key]) 
+            for key in self.DEFAULTS.keys() if key not in self.environ) 
             
     def initUi(self, database=os.path.join(os.curdir, "cleed.db")):
         # Setup slots and signals
@@ -77,7 +83,8 @@ class EnvironmentDialog(QtGui.QDialog):
         self.ui.deleteVariableButton.clicked.connect(self.deleteVariable)
         
         self.ui.showFullEnvironmentCheckBox.toggled.connect(self.showAll)
-        self.ui.systemEnvironmentCheckBox.stateChanged.connect(lambda: sys.stderr.write("TODO\n"))
+        self.ui.systemEnvironmentCheckBox.stateChanged.connect(
+            lambda: sys.stderr.write("{}".format(self.ui.tableWidget.findItems(QtCore.QString("*"), QtCore.Qt.MatchWildcard))))
         
         self.ui.tableWidget.cellChanged.connect(self.updateVariable)
         self.ui.tableWidget.verticalHeader().setVisible(True)
@@ -107,16 +114,27 @@ class EnvironmentDialog(QtGui.QDialog):
                 self.ui.tableWidget.insertRow(self.ui.tableWidget.rowCount())
                 header_item = QtGui.QTableWidgetItem(str(key))
                 self.ui.tableWidget.setVerticalHeaderItem(row, header_item)
-            else:
-                try:
-                    row = self.ui.tableWidget.findItems(key, QtCore.QtMatchEndsWith)[0].row()
-                except AttributeError:
-                    print("Need to delete {}".format(key))
-                    continue
                 
             # update items and variable dictionary
             self.ui.tableWidget.setItem(row, 0, QtGui.QTableWidgetItem(vars[key]))
-            self.vars[key] = vars[key] 
+            self.vars[key] = vars[key]
+                
+        for key in headers:
+            if key not in self.environ:
+                try:
+                    matches = self.ui.tableWidget.findItems(self.vars[key], 
+                                                            QtCore.Qt.MatchExactly)
+                    row = matches[0].row() 
+                    self.ui.tableWidget.removeRow(row)
+                except IndexError:
+                    sys.stderr.write("Could not remove '{}' from table\n".format(key))   
+                if key in self.vars:
+                    self.vars.pop(key)
+                continue
+                
+                # update items and variable dictionary
+                self.ui.tableWidget.setItem(row, 0, QtGui.QTableWidgetItem(vars[key]))
+                self.vars[key] = vars[key]
     
     def addVariable(self):
         new_var, ok = QtGui.QInputDialog.getText(self, "New variable...", 
