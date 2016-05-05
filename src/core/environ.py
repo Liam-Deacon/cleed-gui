@@ -71,6 +71,8 @@ ENVVARS = ['CLEED_HOME', 'CLEED_PHASE', 'CSEARCH_LEED', 'CSEARCH_RFAC']
 ##############################################################################
 
 class Environment(object):
+    ENVVARS = ['CLEED_HOME', 'CLEED_PHASE', 'CSEARCH_LEED', 'CSEARCH_RFAC']
+    
     '''
     Attributes
     ----------
