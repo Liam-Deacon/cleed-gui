@@ -52,7 +52,8 @@ dist = setup(
                             'matplotlib',           # graph plots
                             'cython',               # CLEED wrapper
                             'pymol',                # molecular visualiser
-                            'phaseshifts'           # phase shift calculations
+                            'phaseshifts',          # phase shift calculations
+                            'appdirs',
                             ],
         ext_modules=[],
         window=[os.path.join("src", "cleed-gui.pyw")],

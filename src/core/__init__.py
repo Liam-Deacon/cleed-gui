@@ -9,7 +9,8 @@ _pkgdir = os.path.dirname(os.path.abspath(__file__))
 _pardir = os.path.dirname(_pkgdir)
 _rootdir = os.path.dirname(_pardir)  # level above cleed_gui package
 
-if _rootdir not in sys.path:
-    sys.path.append(_root)
+for _dir in (_pkgdir, _pardir, _rootdir):
+    if _dir not in sys.path:
+        sys.path.append(_dir)
     
-del(_pkgdir, _pardir, _root)
+del(_pkgdir, _pardir, _rootdir)

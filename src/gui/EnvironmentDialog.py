@@ -36,10 +36,32 @@ import res_rc
 import os
 import sys
 from copy import deepcopy
-
+import  re
 import sqlite3 as lite
 
-from appdirs import AppDirs
+try:
+    from appdirs import AppDirs
+except ImportError:
+    class AppDirs(object):
+        
+        def __init__(self, appName, appAuthor=None, version=None):
+            self.appname = appName
+            self.appauthor = appAuthor or ""
+            self.version = version or ""
+            self.user_prefix = "~/." if not sys.platform.startswith("win") else "$APPDATA"
+            
+            # dummy properties
+            
+            self.user_data_dir = os.path.expandvars("~")
+            if self.appauthor:
+                self.user_data_dir = os.path.join(self.user_data_dir, 
+                                                  str(self.appauthor))
+            self.user_data_dir = os.path.join(self.user_data_dir, 
+                                              self.appname) 
+            
+            if re.match("^(\d+\.)?(\d+\.)?(\*|\d+)$", self.version) :
+                self.user_data_dir = os.path.join(self.user_data_dir, version)
+                    
 
 class EnvironmentDialog(QtGui.QDialog):
     '''
@@ -72,8 +94,9 @@ class EnvironmentDialog(QtGui.QDialog):
         self.environ = deepcopy(os.environ)
         
         # assign defaults if not present
-        all(self.environ.__set__(key, self.DEFAULTS[key]) 
-            for key in self.DEFAULTS.keys() if key not in self.environ) 
+        for key in self.DEFAULTS.keys():
+            if key not in self.environ:
+                self.environ[key] = self.DEFAULTS[key] or '' 
             
     def initUi(self, database=os.path.join(os.curdir, "cleed.db")):
         # Setup slots and signals
@@ -81,6 +104,8 @@ class EnvironmentDialog(QtGui.QDialog):
         
         self.ui.addVariableButton.clicked.connect(self.addVariable)
         self.ui.deleteVariableButton.clicked.connect(self.deleteVariable)
+        
+        self.ui.tableWidget.cellChanged.connect(self.updateVariable)
         
         self.ui.showFullEnvironmentCheckBox.toggled.connect(self.showAll)
         self.ui.systemEnvironmentCheckBox.stateChanged.connect(
@@ -97,44 +122,37 @@ class EnvironmentDialog(QtGui.QDialog):
         self.environ[var] = value
     
     def showAll(self, toggled):
+        headers = lambda: (str(self.ui.tableWidget.verticalHeaderItem(i).text()) 
+                           for i in range(self.ui.tableWidget.rowCount()))
+        
         if toggled:
             keys = set(list(self.environ.keys()) + list(self.ENV.keys()))
-        else:
-            keys = set(self.environ.keys()) - set(os.environ.keys())
+            vars = dict((k, self.environ[k]) if k in self.environ.keys() 
+                        else (k, self.ENV[k]) for k in keys)
+            self.user_environ = deepcopy(self.environ)
             
-        vars = dict((k, self.environ[k]) if k in self.environ.keys() 
-                    else (k, self.ENV[k]) for k in keys)
+            for key in keys:
+                if key not in headers():
+                    row = self.ui.tableWidget.rowCount()
+                    self.ui.tableWidget.insertRow(self.ui.tableWidget.rowCount())
+                    header_item = QtGui.QTableWidgetItem(str(key))
+                    self.ui.tableWidget.setVerticalHeaderItem(row, header_item)
+                    self.ui.tableWidget.setItem(row, 0, QtGui.QTableWidgetItem(vars[key]))
+                    self.environ[key] = vars[key]
+            
+        else:
+            self.user_environ = self.user_environ or {}
+            for key in headers():
+                if key not in self.user_environ:
+                    try:
+                        matches = self.ui.tableWidget.findItems(vars[key], 
+                                                                QtCore.Qt.MatchExactly)
+                        row = matches[0].row() 
+                        self.ui.tableWidget.removeRow(row)
+                    except IndexError:
+                        sys.stderr.write("Could not remove '{}' from table\n".format(key))   
+                    continue
         
-        headers = [str(self.ui.tableWidget.verticalHeaderItem(i).text()) 
-                   for i in range(self.ui.tableWidget.rowCount())]
-        
-        for key in keys:
-            if key not in headers:
-                row = self.ui.tableWidget.rowCount()
-                self.ui.tableWidget.insertRow(self.ui.tableWidget.rowCount())
-                header_item = QtGui.QTableWidgetItem(str(key))
-                self.ui.tableWidget.setVerticalHeaderItem(row, header_item)
-                
-            # update items and variable dictionary
-            self.ui.tableWidget.setItem(row, 0, QtGui.QTableWidgetItem(vars[key]))
-            self.vars[key] = vars[key]
-                
-        for key in headers:
-            if key not in self.environ:
-                try:
-                    matches = self.ui.tableWidget.findItems(self.vars[key], 
-                                                            QtCore.Qt.MatchExactly)
-                    row = matches[0].row() 
-                    self.ui.tableWidget.removeRow(row)
-                except IndexError:
-                    sys.stderr.write("Could not remove '{}' from table\n".format(key))   
-                if key in self.vars:
-                    self.vars.pop(key)
-                continue
-                
-                # update items and variable dictionary
-                self.ui.tableWidget.setItem(row, 0, QtGui.QTableWidgetItem(vars[key]))
-                self.vars[key] = vars[key]
     
     def addVariable(self):
         new_var, ok = QtGui.QInputDialog.getText(self, "New variable...", 
@@ -147,7 +165,7 @@ class EnvironmentDialog(QtGui.QDialog):
             item = QtGui.QTableWidgetItem(str(new_var))
             self.ui.tableWidget.insertRow(row)
             self.ui.tableWidget.setVerticalHeaderItem(row, item)
-            self.environ[str(new_var)] = ''
+            self.ui.tableWidget.setItem(row, QtGui.QTableWidgetItem(''))
 
     @property
     def vars(self):
