@@ -3,7 +3,7 @@
 #                                                                            #
 # Contact: liam.m.deacon@gmail.com                                           #
 #                                                                            #
-# Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
+# Copyright: Copyright (C) 2014-2016 Liam Deacon                             #
 #                                                                            #
 # License: MIT License                                                       #
 #                                                                            #
@@ -58,7 +58,7 @@ from ImportDialog import ImportDialog
 
 # Define globals
 __APP_AUTHOR__ = 'Liam Deacon'
-__APP_COPYRIGHT__ = '\xa9' + '2013-2015 {0}'.format(__APP_AUTHOR__)
+__APP_COPYRIGHT__ = '\xa9' + '2013-2016 {0}'.format(__APP_AUTHOR__)
 __APP_DESCRIPTION__ = ('CLEED - Interactive Visualiser (IV) \n '
                         '- a GUI front end to the CLEED package')
 __APP_DISTRIBUTION__ = 'cleed-gui'
@@ -310,6 +310,8 @@ class MainWindow(QtGui.QMainWindow):
         self.projects = {}
         self.models = {}
         
+        self.use_tray = True
+        
     # initialise UI
     def _initUi(self):
         '''Class to initialise the Qt Widget and setup slots and signals'''
@@ -497,7 +499,7 @@ class MainWindow(QtGui.QMainWindow):
             
     def closeEvent(self, event):
         '''override closeEvent'''
-        if not self.ui.trayIcon.isVisible():
+        if not self.ui.trayIcon.isVisible() and self.use_tray:
             self.ui.hide()
             self.ui.trayIcon.show()
             self.ui.trayIcon.showMessage("CLEED-IV",
@@ -1119,51 +1121,70 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
     
+    # parse command lines arguments
+    from commandline import CommandLine
+    cli = CommandLine()
+    
+    parsed_args, unparsed_args = cli.process_cl_args()
+    
+    # launch application
     app = QtGui.QApplication(argv)
     app.processEvents()
-    png_path = os.path.abspath(os.path.join(
-            os.path.dirname(__file__), "res", "CLEED_logo.png"))
-    pixmap = QtGui.QPixmap(png_path)
-    splash = QtGui.QSplashScreen(pixmap, QtCore.Qt.WindowStaysOnTopHint)
-    #splash.setMask(pixmap.mask())  # this is useful if splash isn't a rectangle
     
-    # set font
-    font = QtGui.QFont()
-    font.setPointSize(16)
-    font.setWeight(800)
-
-    splash.setFont(font)
+    splash = None
+    if not parsed_args.disable_splash:
+        png_path = os.path.abspath(os.path.join(
+                os.path.dirname(__file__), "res", "CLEED_logo.png"))
+        pixmap = QtGui.QPixmap(png_path)
+        splash = QtGui.QSplashScreen(pixmap, QtCore.Qt.WindowStaysOnTopHint)
+        #splash.setMask(pixmap.mask())  # this is useful if splash isn't a rectangle
     
-    splash.showMessage((u'Starting %s...' % __APP_NAME__), 
-                       QtCore.Qt.AlignCenter | QtCore.Qt.AlignBottom, 
-                       QtCore.Qt.blue)
-    splash.show()
+        # set font
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        font.setWeight(800)
     
-    # make sure Qt really display the splash screen 
-    app.processEvents()
+        splash.setFont(font)
+        
+        splash.showMessage((u'Starting %s...' % __APP_NAME__), 
+                           QtCore.Qt.AlignCenter | QtCore.Qt.AlignBottom, 
+                           QtCore.Qt.blue)
+        splash.show()
+        
+        # make sure Qt really display the splash screen 
+        app.processEvents()
+    
     
     app.setQuitOnLastWindowClosed(False)
     
     window = MainWindow()
     window.hide()
     
-    
     app.setWindowIcon(window.ui.windowIcon())
     
     if not QtGui.QSystemTrayIcon.isSystemTrayAvailable():
         window.logger.warning("Unable to create a Systray on this system")
+        
+    if parsed_args.disable_tray:
+        window.ui.trayIcon.setVisible(False)
+        window.use_tray = False
     
-    splash.showMessage(u'Loading session...', 
-                       QtCore.Qt.AlignCenter | QtCore.Qt.AlignBottom, 
-                       QtCore.Qt.blue)
+    if splash:
+        splash.showMessage(u'Loading session...', 
+                           QtCore.Qt.AlignCenter | QtCore.Qt.AlignBottom, 
+                           QtCore.Qt.blue)
     
-    window.loadSession()
+    # restore previous session and settings - may take some time
+    if not parsed_args.use_defaults:
+        window.loadSession()
     
     # now kill the splash screen
-    splash.finish(window)
-    splash.close()
+    if splash:
+        splash.finish(window)
+        splash.close()
     
-    if '-q' not in argv and '--quiet' not in argv:  
+    if '-q' not in argv and '--quiet' not in argv:
+        # run application in foreground   
         window.ui.show()
     sys.exit(app.exec_())
 

@@ -3,7 +3,7 @@
 #                                                                            #
 # Contact: liam.m.deacon@gmail.com                                           #
 #                                                                            #
-# Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
+# Copyright: Copyright (C) 2014-2016 Liam Deacon                             #
 #                                                                            #
 # License: MIT License                                                       #
 #                                                                            #
@@ -37,10 +37,11 @@ from __builtin__ import __import__
 
 from common import VARS
 
-'''
-Class for processing command line arguments for CLEED-IV
-'''
+
 class CommandLine(object):
+    '''
+    Class for processing command line arguments for CLEED-IV
+    '''
     def __init__(self, args=sys.argv):
         sys.argv.extend(args)
         self.parser = ArgumentParser
@@ -60,7 +61,7 @@ class CommandLine(object):
         program_license = """%s
     
           Created by Liam Deacon on %s.
-          Copyright 2013-2015 Liam Deacon. All rights reserved.
+          Copyright 2013-2016 Liam Deacon. All rights reserved.
     
           Licensed under the MIT license (see LICENSE file for details)
     
@@ -77,6 +78,10 @@ class CommandLine(object):
             self.parser = ArgumentParser(description=program_license, 
                                 formatter_class=RawDescriptionHelpFormatter)
             parser = self.parser
+            parser.add_argument('-c', '--config', dest='config',
+                                metavar='<ini_file>', default=None,
+                                type=str, help='Use named configuration file '
+                                ' [default: "%(default)s"]')
             parser.add_argument('-i', '--import', dest='project', 
                                 metavar='<project_path>', 
                                 help='Imports an existing CLEED project '
@@ -88,7 +93,7 @@ class CommandLine(object):
                                 "file [default: %(default)s]")
             parser.add_argument('--leed-program', dest='leed', 
                                 metavar='<leed_program>', 
-                                default= os.environ.get('CSEARCH_LEED', 'cleed'), 
+                                default=os.environ.get('CSEARCH_LEED', 'cleed'), 
                                 help='Specifies the LEED program to use '
                                 '[default: %(default)s]')
             parser.add_argument('--rfactor-program', dest='rfac', 
@@ -101,7 +106,18 @@ class CommandLine(object):
                                 default=os.environ.get('CLEED_PHASE', 'phsh') , 
                                 help='Specifies the phaseshift program to use '
                                 '[default: %(default)s]')
-
+            parser.add_argument('--defaults', dest='use_defaults', 
+                                action='store_true',
+                                help='Start up program with default settings.')
+            parser.add_argument('--no-splash', dest='disable_splash', 
+                                action='store_true',
+                                help='Disables the splash screen on startup.')
+            parser.add_argument('--no-tray', dest='disable_tray', 
+                                action='store_true',
+                                help='Disables the system tray icon.')
+            parser.add_argument('-q', '--quiet', dest='quiet', 
+                                action='store_true',
+                                help='Launch as background app.')
             parser.add_argument("-v", "--verbose", dest="verbose", 
                                 action="count", help="Set verbosity level. "
                                 "[default: %(default)s]")
