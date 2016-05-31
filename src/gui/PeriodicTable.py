@@ -6,7 +6,7 @@
 #                                                                            #
 # Contact: liam.m.deacon@gmail.com                                           #
 #                                                                            #
-# Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
+# Copyright: Copyright (C) 2014-2016 Liam Deacon                             #
 #                                                                            #
 # License: MIT License                                                       #
 #                                                                            #
@@ -31,13 +31,13 @@
 ##############################################################################
 
 """
-atorb.py
+PeridoicTable.py
 
 @author: Liam Deacon
 
 @contact: liam.m.deacon@gmail.com
 
-@copyright: Copyright (C) 2014-2015 Liam Deacon
+@copyright: Copyright (C) 2014-2016 Liam Deacon
 
 @license: MIT License (see LICENSE file for details)
 
@@ -66,35 +66,8 @@ __PYTHON__ = "{0}.{1}.{2}".format(sys.version_info.major,
                                          sys.version_info.micro, 
                                          sys.version_info.releaselevel)
 
-# Platform specific setup
-if platform.system() is 'Windows':
-    from ctypes import windll
-    # Tell Windows Python is merely hosting the application (taskbar icon fix)
-    windll.shell32.SetCurrentProcessExplicitAppUserModelID(__APP_NAME__)
-
 # Import Qt modules
-from PyQt4 import QtCore, QtGui, uic
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-
-
-def determineGuiFrontend():
-    """Determine which GUI toolkit to use"""
-    try:
-        guiFrontend = 'PySide {0}'.format(PySide.__version__)
-    except NameError:
-        guiFrontend = None
-    
-    if guiFrontend is None:
-        try:
-            guiFrontend = 'PyQt {0}'.format(PYQT_VERSION_STR)
-        except NameError:
-            guiFrontend = None
-            
-    if guiFrontend != None:
-        return "Qt {0} (PyQt {1})".format(QtCore.qVersion(), guiFrontend)
-
-__APP_GUI__ = determineGuiFrontend()
+from qtbackend import QtCore, QtGui, QtLoadUI
 
 # Load resources & local modules
 import res_rc
@@ -242,10 +215,8 @@ class PeriodicTableDialog(QtGui.QFrame):
         super(PeriodicTableDialog, self).__init__(parent)
  
         # Or more dynamically
-        self.ui = uic.loadUi(os.path.join(
-                                          os.path.dirname(__file__), 
-                                          "PeriodicTable.ui"), 
-                             self)
+        self.ui = QtLoadUI(os.path.join(os.path.dirname(__file__), 
+                                        "PeriodicTable.ui"), self)
         self.ui.show()
         
         self.selectedElement = element  # default is Hydrogen
@@ -310,14 +281,20 @@ def main():
     # Again, this is boilerplate, it's going to be the same on
     # almost every app you write
     app = QtGui.QApplication(sys.argv)
-    app.setWindowIcon(QtGui.QIcon(os.path.join(
-                                               os.path.dirname(__file__), 
-                                               'res', 
-                                               'periodictable.svg')
-                                  )
-                      )
+    icon = QtGui.QIcon(os.path.join(os.path.dirname(__file__), 
+                                    'res', 
+                                    'periodictable.svg'))
+    app.setWindowIcon(icon)
     window = PeriodicTableDialog()
+    
+    # Platform specific setup
+    if platform.system() is 'Windows':
+        from ctypes import windll
+        # Tell Windows Python is merely hosting the application (taskbar icon fix)
+        windll.shell32.SetCurrentProcessExplicitAppUserModelID(__APP_NAME__)
+    
     window.show()
+    
     # It's exec_ because exec is a reserved word in Python
     sys.exit(app.exec_())
 
