@@ -36,39 +36,9 @@ import os
 
 try:
     from phaseshifts.utils import expand_filepath
-except:
+except ImportError:
     expand_filepath = lambda x: os.path.expanduser(os.path.expandvars(x))
 
-# minimum environment for CLEED
-ENVVARS = ['CLEED_HOME', 'CLEED_PHASE', 'CSEARCH_LEED', 'CSEARCH_RFAC']
-##############################################################################
-# Author: Liam Deacon                                                        #
-#                                                                            #
-# Contact: liam.m.deacon@gmail.com                                           #
-#                                                                            #
-# Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
-#                                                                            #
-# License: MIT License                                                       #
-#                                                                            #
-# Permission is hereby granted, free of charge, to any person obtaining a    #
-# copy of this software and associated documentation files (the "Software"), #
-# to deal in the Software without restriction, including without limitation  #
-# the rights to use, copy, modify, merge, publish, distribute, sublicense,   #
-# and/or sell copies of the Software, and to permit persons to whom the      #
-# Software is furnished to do so, subject to the following conditions:       #
-#                                                                            #
-# The above copyright notice and this permission notice shall be included in #
-# all copies or substantial portions of the Software.                        #
-#                                                                            #
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR #
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   #
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    #
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER #
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING    #
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER        #
-# DEALINGS IN THE SOFTWARE.                                                  #
-#                                                                            #
-##############################################################################
 
 class Environment(object):
     ENVVARS = ['CLEED_HOME', 'CLEED_PHASE', 'CSEARCH_LEED', 'CSEARCH_RFAC']
@@ -96,7 +66,7 @@ class Environment(object):
         return os.access(path, os.X_OK)  
     
     def _is_valid_exe(self, exe):
-        return _is_executable(expand_filepath(exe))
+        return self._is_executable(expand_filepath(exe))
     
     def check_environment(self, keys=ENVVARS):
         is_okay = True
