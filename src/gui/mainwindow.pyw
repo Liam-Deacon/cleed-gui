@@ -629,7 +629,8 @@ class MainWindow(QtGui.QMainWindow):
     def help(self):
         """Display help"""
         help_file = str((os.path.abspath(os.path.join(
-                        '.', 'res', 'help', 'html', 'index.html'))))
+                        os.path.dirname(__file__), 
+                        'res', 'help', 'html', 'index.html'))))
         if not QtGui.QDesktopServices.openUrl(
                             QtCore.QUrl.fromLocalFile(help_file)):
             self.logger.error(
