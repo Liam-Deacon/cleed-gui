@@ -3,7 +3,7 @@
 #                                                                            #
 # Contact: liam.m.deacon@gmail.com                                           #
 #                                                                            #
-# Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
+# Copyright: Copyright (C) 2014-2016 Liam Deacon                             #
 #                                                                            #
 # License: MIT License                                                       #
 #                                                                            #
@@ -29,18 +29,20 @@
 '''
 global_vars.py - module for defining global variables to be used elsewhere.
 '''
-
+from __future__ import unicode_literals
 import sys
 
 # Define globals
 __APP_AUTHOR__ = 'Liam Deacon'
-__APP_COPYRIGHT__ = '\xa9' + '2013-2015 {0}'.format(__APP_AUTHOR__)
-__APP_DATE__ = '2015-11-30'
-__APP_DESCRIPTION__ = ('CLEED - Interactive Visualiser (IV) \n '
+__APP_AUTHORS__ = []
+__APP_COPYRIGHT__ = (('\xa9 ' if isinstance('', unicode) else 'Copyright ') + 
+                     '2013-2016 {0}'.format(__APP_AUTHOR__))
+__APP_DATE__ = '2016-05-01'
+__APP_DESCRIPTION__ = ('CLEED Interactive Visualiser (IV)\n '
                         '- a GUI front end to the CLEED package')
 __APP_DISTRIBUTION__ = 'cleed-gui'
 __APP_EMAIL__ = 'liam.m.deacon@gmail.com'
-__APP_CONTACT__ = __APP_AUTHOR__ + "<" +__APP_EMAIL__ + ">"
+__APP_CONTACT__ = __APP_AUTHOR__ + " <" +__APP_EMAIL__ + ">"
 __APP_LICENSE__ = 'GNU General Public License 3.0'
 __APP_NAME__ = u'CLEED-IV'
 __APP_VERSION__ = '0.1.0-dev'
@@ -52,7 +54,8 @@ __UPDATE_URL__ = ""
 
 __DEBUG__ = True
 
-VARS = {'author': __APP_AUTHOR__, 
+VARS = {'original author': 'Liam Deacon',
+        'authors': ', '.join([__APP_AUTHOR__] + __APP_AUTHORS__), 
         'copyright': __APP_COPYRIGHT__,
         'contact': __APP_CONTACT__,
         'date': __APP_DATE__,
@@ -65,3 +68,5 @@ VARS = {'author': __APP_AUTHOR__,
         'python': __PYTHON__,
         'update url': __UPDATE_URL__,
         'debug': __DEBUG__}
+
+__all__ = ['VARS']

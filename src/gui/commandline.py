@@ -29,19 +29,19 @@
 '''
 commandline.py - module for processing CLEED-IV command lines arguments
 '''
-
+from __future__ import unicode_literals
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import sys
 import os
-from __builtin__ import __import__
 
 from common import VARS
-
+from log import LogLevel
 
 class CommandLine(object):
     '''
     Class for processing command line arguments for CLEED-IV
     '''
+        
     def __init__(self, args=sys.argv):
         sys.argv.extend(args)
         self.parser = ArgumentParser
@@ -57,21 +57,18 @@ class CommandLine(object):
         program_build_date = str(VARS['date'])
         program_version_message = '%%(prog)s %s (%s)' % (program_version, 
                                                          program_build_date)
-        program_shortdesc = "".join(VARS['description'].split("\n")[1:2])
-        program_license = """%s
+        program_shortdesc = "".join(VARS['description'].split("\n")[:2])
+        program_license = """{short_description}
     
-          Created by Liam Deacon on %s.
-          Copyright 2013-2016 Liam Deacon. All rights reserved.
+          {copyright}. All rights reserved.
     
           Licensed under the MIT license (see LICENSE file for details)
     
           Please send your feedback, including bug notifications
-          and fixes, to: %s
-    
-        usage:-
-        """ % (program_shortdesc, 
-               str(VARS['date']), 
-               VARS['contact'])
+          and fixes, to: {contact}
+        """.format(short_description=program_shortdesc, 
+                   copyright=VARS['copyright'],
+                   contact=VARS['contact'])
     
         try:
             # Setup argument parser
@@ -115,6 +112,16 @@ class CommandLine(object):
             parser.add_argument('--no-tray', dest='disable_tray', 
                                 action='store_true',
                                 help='Disables the system tray icon.')
+            parser.add_argument('--log-level', dest='log_level', 
+                                metavar='<level>', type=LogLevel.getLogLevel,
+                                default=LogLevel.DEFAULT_LEVEL,
+                                help='Specify log level as integer or string. '
+                                'Options are: ' +
+                                ', '.join("{name} ({level})".format(
+                                                name=key.lower(), 
+                                                level=LogLevel.LOG_LEVELS[key]) 
+                                          for key in LogLevel.LOG_LEVELS) +
+                                '. [default: %(default)s]')
             parser.add_argument('-q', '--quiet', dest='quiet', 
                                 action='store_true',
                                 help='Launch as background app.')
@@ -129,7 +136,6 @@ class CommandLine(object):
     
     def process_cl_args(self):
         self.parsed_args, self.unparsed_args = self.parser.parse_known_args()
-        
         return self.parsed_args, self.unparsed_args
 
 

@@ -267,7 +267,7 @@ class MainWindow(QtGui.QMainWindow):
         # APP LOGGING
         ######################################
         
-        # create logger with 'spam_application'
+        # create logger
         self.logger = logging.getLogger(__APP_NAME__)
         self.logger.setLevel(logging.DEBUG)
         
@@ -1162,8 +1162,16 @@ def main(argv=None):
     
     app.setWindowIcon(window.ui.windowIcon())
     
+    # set log level
+    if parsed_args.log_level:
+        window.logger.setLevel(parsed_args.log_level)
+    
     if not QtGui.QSystemTrayIcon.isSystemTrayAvailable():
         window.logger.warning("Unable to create a Systray on this system")
+        
+    from capabilities import CAPABILITIES
+    for capability in CAPABILITIES['disabled']:
+        window.logger.warning("'{}' is not available".format(capability))
         
     if parsed_args.disable_tray:
         window.ui.trayIcon.setVisible(False)
