@@ -29,6 +29,7 @@
 '''
 capabilities.py - module for defining global variables to be used elsewhere.
 '''
+import sys
 
 CAPABILITIES = {'enabled': [], 'disabled': []}
 
@@ -61,6 +62,34 @@ try:
     CAPABILITIES['enabled'].append('scipy')
 except ImportError:
     CAPABILITIES['disabled'].append('scipy')
+
+def installPackages(pkgs=['easyleed', 'phaseshifts'], import_pkgs=True):
+    """
+    Tries to install missing packages
+    
+    Arguments:
+        pkgs: List of package names to install
+        import_pkgs: Determines whether to also import newly installed packages
+    
+    Raises:
+        ImportError: if pip package is not available
+    """
+    import importlib
+    try:
+        import pip
+        for pkg in pkgs:
+            try:
+                importlib.import_module(pkg)
+            except ImportError:
+                try:
+                    pip.main(['install', pkg])
+                    if import_pkgs:
+                        globals()[pkg] = importlib.import_module(pkg)
+                except:
+                    sys.stderr.write("Could not install package '{}'".format(pkg))
+    except ImportError:
+        raise ImportError('Please install pip then try again')
+
 
 # export set of capabilities
 __all__ = ['CAPABILITIES']

@@ -190,8 +190,15 @@
      <addaction name="recentScriptsMenu"/>
      <addaction name="separator"/>
     </widget>
+    <widget class="QMenu" name="menuGenerate_IVs">
+     <property name="title">
+      <string>Extract IVs</string>
+     </property>
+     <addaction name="extractLEEDData"/>
+     <addaction name="extractLEEMData"/>
+    </widget>
     <addaction name="processIVCurvesAction"/>
-    <addaction name="generateIVsAction"/>
+    <addaction name="menuGenerate_IVs"/>
     <addaction name="scriptingMenu"/>
    </widget>
    <widget class="QMenu" name="windowMenu">
@@ -833,21 +840,6 @@
     <string>&amp;IV Curves</string>
    </property>
   </action>
-  <action name="generateIVsAction">
-   <property name="icon">
-    <iconset resource="res/res.qrc">
-     <normaloff>:/wand.svg</normaloff>:/wand.svg</iconset>
-   </property>
-   <property name="text">
-    <string>Generate IVs...</string>
-   </property>
-   <property name="toolTip">
-    <string>Start wizard for extracting IVs from a sequence of images...</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+G</string>
-   </property>
-  </action>
   <action name="importAction">
    <property name="icon">
     <iconset resource="res/res.qrc">
@@ -992,6 +984,27 @@
    </property>
    <property name="toolTip">
     <string>Generate lattice of atoms...</string>
+   </property>
+  </action>
+  <action name="extractLEEDData">
+   <property name="icon">
+    <iconset resource="res/res.qrc">
+     <normaloff>:/target_32x32.png</normaloff>:/target_32x32.png</iconset>
+   </property>
+   <property name="text">
+    <string>From LEE&amp;D data...</string>
+   </property>
+   <property name="toolTip">
+    <string>Extract IV curves from LEED image sequence</string>
+   </property>
+  </action>
+  <action name="extractLEEMData">
+   <property name="icon">
+    <iconset resource="res/res.qrc">
+     <normaloff>:/microscope.svg</normaloff>:/microscope.svg</iconset>
+   </property>
+   <property name="text">
+    <string>From LEE&amp;M data...</string>
    </property>
   </action>
  </widget>

@@ -1,5 +1,6 @@
 <RCC>
   <qresource>
+    <file>microscope.svg</file>
     <file>pattern.svg</file>
     <file>share.svg</file>
     <file>award_fill.svg</file>

@@ -128,7 +128,7 @@
                   <string>Edit muffin-tin potential calculation parameters</string>
                  </property>
                  <property name="icon">
-                  <iconset resource="res/res.qrc">
+                  <iconset>
                    <normaloff>:/cog_32x32.png</normaloff>:/cog_32x32.png</iconset>
                  </property>
                  <item>
@@ -136,7 +136,7 @@
                    <string>Output</string>
                   </property>
                   <property name="icon">
-                   <iconset resource="res/res.qrc">
+                   <iconset>
                     <normaloff>:/question_32x32.png</normaloff>:/question_32x32.png</iconset>
                   </property>
                  </item>
@@ -328,7 +328,7 @@
                   <string>Edit muffin-tin potential calculation parameters</string>
                  </property>
                  <property name="icon">
-                  <iconset resource="res/res.qrc">
+                  <iconset>
                    <normaloff>:/cog_32x32.png</normaloff>:/cog_32x32.png</iconset>
                  </property>
                  <item>
@@ -336,7 +336,7 @@
                    <string>Output</string>
                   </property>
                   <property name="icon">
-                   <iconset resource="res/res.qrc">
+                   <iconset>
                     <normaloff>:/question_32x32.png</normaloff>:/question_32x32.png</iconset>
                   </property>
                  </item>
@@ -521,7 +521,7 @@
   </widget>
   <action name="actionAbout">
    <property name="icon">
-    <iconset resource="res/res.qrc">
+    <iconset>
      <normaloff>:/question_32x32.png</normaloff>:/question_32x32.png</iconset>
    </property>
    <property name="text">
@@ -531,13 +531,17 @@
   <action name="actionAboutQt">
    <property name="icon">
     <iconset resource="res/res.qrc">
-     <normaloff>:/Qt_32x32.png</normaloff>:/Qt_32x32.png</iconset>
+     <normaloff>:/qt.svg</normaloff>:/qt.svg</iconset>
    </property>
    <property name="text">
     <string>About &amp;Qt</string>
    </property>
   </action>
   <action name="actionAbout_Python">
+   <property name="icon">
+    <iconset resource="res/res.qrc">
+     <normaloff>:/info.svg</normaloff>:/info.svg</iconset>
+   </property>
    <property name="text">
     <string>About Python</string>
    </property>
@@ -545,7 +549,7 @@
   <action name="actionNew">
    <property name="icon">
     <iconset resource="res/res.qrc">
-     <normaloff>:/document_alt_stroke_24x32.png</normaloff>:/document_alt_stroke_24x32.png</iconset>
+     <normaloff>:/document_alt_stroke.svg</normaloff>:/document_alt_stroke.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;New...</string>
@@ -557,7 +561,7 @@
   <action name="actionOpen">
    <property name="icon">
     <iconset resource="res/res.qrc">
-     <normaloff>:/folder_fill_32x32.png</normaloff>:/folder_fill_32x32.png</iconset>
+     <normaloff>:/folder_fill.svg</normaloff>:/folder_fill.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;Open...</string>
@@ -581,7 +585,7 @@
   <action name="actionHelp">
    <property name="icon">
     <iconset resource="res/res.qrc">
-     <normaloff>:/book_32x32.png</normaloff>:/book_32x32.png</iconset>
+     <normaloff>:/question.svg</normaloff>:/question.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;Help...</string>
@@ -593,7 +597,7 @@
   <action name="actionSettings">
    <property name="icon">
     <iconset resource="res/res.qrc">
-     <normaloff>:/wrench_32x32.png</normaloff>:/wrench_32x32.png</iconset>
+     <normaloff>:/cog.svg</normaloff>:/cog.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;Settings</string>
@@ -602,7 +606,7 @@
   <action name="actionContact">
    <property name="icon">
     <iconset resource="res/res.qrc">
-     <normaloff>:/mail_32x32.png</normaloff>:/mail_32x32.png</iconset>
+     <normaloff>:/mail.svg</normaloff>:/mail.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;Contact us</string>
@@ -629,7 +633,7 @@
   <action name="actionUpdate">
    <property name="icon">
     <iconset resource="res/res.qrc">
-     <normaloff>:/rss_alt_32x32.png</normaloff>:/rss_alt_32x32.png</iconset>
+     <normaloff>:/box.svg</normaloff>:/box.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;Update</string>
@@ -638,18 +642,26 @@
   <action name="actionModelBuilder">
    <property name="icon">
     <iconset resource="res/res.qrc">
-     <normaloff>:/blocks.png</normaloff>:/blocks.png</iconset>
+     <normaloff>:/blocks.svg</normaloff>:/blocks.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;Model Builder</string>
    </property>
   </action>
   <action name="actionModel_Editor">
+   <property name="icon">
+    <iconset resource="res/res.qrc">
+     <normaloff>:/pencil_32x32.png</normaloff>:/pencil_32x32.png</iconset>
+   </property>
    <property name="text">
     <string>Modeling</string>
    </property>
   </action>
   <action name="actionView">
+   <property name="icon">
+    <iconset resource="res/res.qrc">
+     <normaloff>:/eye.svg</normaloff>:/eye.svg</iconset>
+   </property>
    <property name="text">
     <string>View</string>
    </property>
@@ -693,7 +705,7 @@
    </property>
    <property name="icon">
     <iconset resource="res/res.qrc">
-     <normaloff>:/list_nested_32x28.png</normaloff>:/list_nested_32x28.png</iconset>
+     <normaloff>:/list_nested.svg</normaloff>:/list_nested.svg</iconset>
    </property>
    <property name="text">
     <string>&amp;Tree View</string>
@@ -711,7 +723,7 @@
    </property>
    <property name="icon">
     <iconset resource="res/res.qrc">
-     <normaloff>:/article_32x32.png</normaloff>:/article_32x32.png</iconset>
+     <normaloff>:/article.svg</normaloff>:/article.svg</iconset>
    </property>
    <property name="text">
     <string>Te&amp;xt View</string>

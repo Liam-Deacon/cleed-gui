@@ -1170,9 +1170,12 @@ def main(argv=None):
     if not QtGui.QSystemTrayIcon.isSystemTrayAvailable():
         window.logger.warning("Unable to create a Systray on this system")
         
-    from capabilities import CAPABILITIES
-    for capability in CAPABILITIES['disabled']:
-        window.logger.warning("'{}' is not available".format(capability))
+    try:
+        from capabilities import CAPABILITIES
+        for capability in CAPABILITIES['disabled']:
+            window.logger.warning("'{}' is not available".format(capability))
+    except ImportError as err:
+        window.logger.error(err.message)
         
     if parsed_args.disable_tray:
         window.ui.trayIcon.setVisible(False)
