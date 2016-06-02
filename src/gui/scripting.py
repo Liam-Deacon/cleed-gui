@@ -344,7 +344,11 @@ class CLEEDConsoleWidget(QtGui.QWidget):
         
         self.ipyConsole.pushVariables(
             {"app": self.parent() or self,
-             "console": self.ipyConsole
+             "console": self.ipyConsole,
+             "QtGui": QtGui,
+             "QtCore": QtCore,
+             "os": os,
+             "sys": sys
              })
         self.ipyConsole.printText("The application handle variable 'app' " 
                                   "is available. "
