@@ -519,13 +519,14 @@ class MainWindow(QtGui.QMainWindow):
 
     # Report bug / email devs
     def contactDeveloper(self, body=""):
-        '''open email client with email to developer''' 
+        '''open email client with email to developer'''
+        from common import VARS
         QtGui.QDesktopServices.openUrl(QtCore.QUrl("mailto: "
-            "{email}?cc={cc}?subject={name} feedback&body={body}"
-            "".format(email=__APP_EMAIL__, 
-                      name=__APP_NAME__, 
-                      cc="g.held@reading.ac.uk",
-                      body=str(body))))
+            "{email}?cc={cc}&subject={name}&body={body}"
+            "".format(email=VARS['contact'], 
+                      name=VARS['name'] + ' feedback', 
+                      cc="Georg Held <g.held@reading.ac.uk>",
+                      body=body or '')))
 
     def copy(self):
         '''use MDI child copy method'''
