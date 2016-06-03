@@ -1010,8 +1010,7 @@ class MainWindow(QtGui.QMainWindow):
         
         # print all saved settings
         for i in settings.allKeys():
-            self.logger.info('setting: {}'.format(i))
-            #print(i, settings.value(i))
+            self.logger.info('setting: {} = {}'.format(i, settings.value(i)))
     
     def writeSettings(self):
         settings = QtCore.QSettings(__APP_DISTRIBUTION__, __APP_NAME__)
