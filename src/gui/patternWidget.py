@@ -76,9 +76,15 @@ class PatternScene(QtGui.QGraphicsScene):
         super(PatternScene, self).__init__(parent)
 
 class PatternWidget(QtGui.QGraphicsView):
-    lastDir = os.path.expandvars('~')
+    """
+    Widget for LEED pattern
+    """
+    lastDir = os.path.expanduser('~')
     lastFile = ''
     filters = ["Pattern Files (*.patt)", "All Files (*)"]
+    export_filters = ["SVG (*.svg)", "Postscript (*.ps)", "PDF (*.pdf)", 
+                      "TIFF Image (*.tiff)", "PNG Image (*.png)",
+                      "BMP Files (*.bmp)", "JPEG Image (*.JPEG)"]
     colorSequence = ['black', 'red', 'blue', 'green', 'orange', 'pink', 'cyan',
                      'yellow', 'gray', 'brown']
     shapeSequence = ['circle', 'triangle_up', 'triangle_down', 'square', 
@@ -143,15 +149,14 @@ class PatternWidget(QtGui.QGraphicsView):
         self.contextMenu.popup(self.viewport().mapToGlobal(point))
     
     def open(self, filename=None):
+        """ Opens a pattern file """
         if not filename:
             fd = QtGui.QFileDialog()
             fd.setAttribute(QtCore.Qt.WA_DeleteOnClose)
             filename = str(fd.getOpenFileName(self, 
                                               caption="Open Pattern file...",
                                               directory=self.lastDir,
-                                              filter=';;'.join(self.filters),
-                                              selectedFilter=self.filters[0]))
-        
+                                              filter=';;'.join(self.filters)))
         if os.path.isfile(filename):
             self.lastDir = os.path.dirname(filename)
             self.lastFile = filename
@@ -164,18 +169,45 @@ class PatternWidget(QtGui.QGraphicsView):
         
             
     def save(self, filename=None):
+        """ Saves the pattern """
         if not filename:
             fd = QtGui.QFileDialog()
             fd.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            filters = self.filters[:1] + self.export_filters
             filename = str(fd.getSaveFileName(self, 
                                               caption='Save Pattern...', 
                                               directory=self.lastDir,
-                                              filter=';;'.join(self.filters),
-                                              selectedFilter=self.filters[0]))
+                                              filter=';;'.join(filters)))
         
-        if filename:
-            self.lastDir = os.path.dirname(filename)
-            self.lastFile = filename
+        if not filename:
+            return
+            
+        self.lastDir = os.path.dirname(filename)
+        self.lastFile = filename 
+        
+        # use QPrinter for vector formats
+        if os.path.splitext(filename)[1].lower() in ('pdf', 'ps', 'svg'):
+            printer = QtGui.QPrinter(QtGui.QPrinter.HighResolution)
+            printer.setPageSize(QtGui.QPrinter.A4)
+            printer.setOrientation(QPrinter.Portrait)
+            printer.setOutputFormat(QPrinter.PdfFormat)
+            printer.setOutputFileName("test.pdf") 
+ 
+            p = QtGui.QPainter(self)
+ 
+            if not p.begin(printer):
+                QtGui.QMessageBox(self) # error
+                return
+    
+            self.scene.render(p)
+            p.end()
+        else:
+            pixmap = QtGui.QPixmap()
+            painter = QtGui.QPainter(pixmap)
+            painter.setRenderHint(QtGui.QPainter.Antialiasing)
+            scene.render(painter)
+            painter.end()
+            pixMap.save(fileName)
             
     
     def draw(self):
@@ -201,9 +233,9 @@ class PatternWidget(QtGui.QGraphicsView):
             obj = eval('self.{}'.format(group))
             obj['substrate'] = QtGui.QGraphicsItemGroup(self, self.scene())
             obj['superstructures'] = [QtGui.QGraphicsItemGroup(self, self.scene())
-                                      for item in spots['superstructrues']]
+                                      for item in spots['superstructures']]
         
-        QtGui.QPainterPath
+
         for spot in spots['substrate']:
             self.indices['substrate'].addToGroup(self.draw_label(spot))
             
@@ -241,7 +273,7 @@ if __name__ == '__main__':
     
     app = QtGui.QApplication(sys.argv)
     
-    pat = PatternWidget(app)
+    pat = PatternWidget()
     pat.show()
     pat.resize(800, 600)
     

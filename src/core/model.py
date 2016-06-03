@@ -71,8 +71,10 @@ class Atom(phaseshifts.model.Atom):
             raise TypeError('dr must be array-like of length 1 or 3')
 
 class UnitCell(phaseshifts.model.Unitcell):
-    def __init__(self, *args, **kwargs):
-        phaseshifts.model.Unitcell.__init__(self, *args, **kwargs)
+    def __init__(self, a=1., c=1., 
+                 matrix3x3=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], 
+                 *args, **kwargs):
+        super(UnitCell, self).__init__(a, c, matrix3x3, *args, **kwargs)
     
     def __str__(self, *args, **kwargs):  
         return ('# unitcell:\n'
@@ -108,8 +110,10 @@ class SuperStructure(UnitCell):
                               ('(5r3x2)rect-hex', ((2., 2.), (-5., 5.))),
                               ('c(2r3x4)rect-hex', ((3., 1.), (1., 3.)))])
     
-    def __init__(self, super_matrix=[[1., 0.], [0., 1.]], *args, **kwargs):
-        UnitCell.__init__(self, *args, **kwargs)
+    def __init__(self, 
+                 a=0, c=0, super_matrix=[[1., 0.], [0., 1.]], 
+                 *args, **kwargs):
+        UnitCell.__init__(self, a, c, *args, **kwargs)
         self.M = super_matrix
         if 'basis' in kwargs:
             self.basis = kwargs['basis']
@@ -128,7 +132,7 @@ class SuperStructure(UnitCell):
     
     @property
     def c(self):
-        return UnitCell.c(self)
+        return self._c
     
     @c.setter
     def c(self, c):
