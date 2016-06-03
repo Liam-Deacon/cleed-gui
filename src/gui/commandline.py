@@ -37,11 +37,11 @@ import os
 from common import VARS
 from log import LogLevel
 
+
 class CommandLine(object):
     '''
     Class for processing command line arguments for CLEED-IV
     '''
-        
     def __init__(self, args=sys.argv):
         sys.argv.extend(args)
         self.parser = ArgumentParser

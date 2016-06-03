@@ -3,7 +3,7 @@
 #                                                                            #
 # Contact: liam.m.deacon@gmail.com                                           #
 #                                                                            #
-# Copyright: Copyright (C) 2014-2015 Liam Deacon                             #
+# Copyright: Copyright (C) 2014-2016 Liam Deacon                             #
 #                                                                            #
 # License: MIT License                                                       #
 #                                                                            #

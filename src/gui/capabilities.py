@@ -63,6 +63,7 @@ try:
 except ImportError:
     CAPABILITIES['disabled'].append('scipy')
 
+
 def installPackages(pkgs=['easyleed', 'phaseshifts'], import_pkgs=True):
     """
     Tries to install missing packages
@@ -92,4 +93,4 @@ def installPackages(pkgs=['easyleed', 'phaseshifts'], import_pkgs=True):
 
 
 # export set of capabilities
-__all__ = ['CAPABILITIES']
+__all__ = ['CAPABILITIES', 'installPackages']
