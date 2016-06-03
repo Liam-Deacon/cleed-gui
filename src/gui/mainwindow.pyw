@@ -391,6 +391,8 @@ class MainWindow(QtGui.QMainWindow):
                             self.ui.dockWidgetScript.setVisible(x))
         
         # process actions
+        self.ui.extractLEEDData.triggered.connect(self.extractLEED)
+        self.ui.extractLEEMData.triggered.connect(self.todo)
         
         # window actions
         self.ui.minimiseAction.triggered.connect(self.todo)
@@ -581,6 +583,19 @@ class MainWindow(QtGui.QMainWindow):
     def exportModel(self):
         '''Export model as text file'''
         pass
+    
+    def extractLEED(self):
+        stderr = sys.stderr
+        try:
+            from easyleed.gui import MainWindow as mw
+
+            sys.stderr = sys.__stderr__
+            leed = mw(self)
+            #mw.setWindowIcon(QtGui.QIcon(''))
+            leed.show()
+        except any as err:
+            raise err
+        sys.stderr = stderr
     
     def importDialog(self):
         '''Open dialog and radio options'''
