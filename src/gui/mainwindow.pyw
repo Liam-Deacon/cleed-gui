@@ -394,6 +394,10 @@ class MainWindow(QtGui.QMainWindow):
         self.ui.extractLEEDData.triggered.connect(self.extractLEED)
         self.ui.extractLEEMData.triggered.connect(self.todo)
         
+        # tool actions
+        self.ui.patternAction.triggered.connect(self.pattern)
+        self.ui.latticeAction.triggered.connect(self.lattice)
+        
         # window actions
         self.ui.minimiseAction.triggered.connect(self.todo)
         self.ui.closeEvent = self.closeEvent  # dodgy fix for close event
@@ -542,8 +546,8 @@ class MainWindow(QtGui.QMainWindow):
         child = MdiChild()
         self.ui.mdiArea.addSubWindow(child)
 
-        child.copyAvailable.connect(self.cutAction.setEnabled)
-        child.copyAvailable.connect(self.copyAction.setEnabled)
+        child.copyAvailable.connect(self.ui.cutAction.setEnabled)
+        child.copyAvailable.connect(self.ui.copyAction.setEnabled)
 
         return child
     
@@ -619,6 +623,10 @@ class MainWindow(QtGui.QMainWindow):
             self.projects.append(project)
             
          #"Images (*.png *.xpm *.jpg);;Text files (*.txt);;XML files (*.xml)"
+    
+    def lattice(self):
+        ''' Start a lattice wigdet '''
+        self.todo()
     
     def loadSession(self, filename=None):
         ''' Loads a previous session '''
@@ -737,6 +745,13 @@ class MainWindow(QtGui.QMainWindow):
             self.activeMdiChild().paste()
         else:
             self.todo()
+    
+    def pattern(self):
+        ''' show pattern widget '''
+        from patternWidget import PatternWidget
+        self.ui.patternWidget = PatternWidget()
+        #self.ui.mdiArea.addSubWindow(self.ui.patternWidget) 
+        self.ui.patternWidget.show()
     
     # check type of input file
     def parseInput(self):

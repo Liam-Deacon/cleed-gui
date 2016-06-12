@@ -33,11 +33,12 @@ from qtbackend.QtGui import QGraphicsItem
 import res_rc
 from operator import isCallable
 
+import sys
+import os
+
 try:
     from core import pattern
 except ImportError:
-    import sys
-    import os
     module_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     module_path = os.path.join(module_path, 'core')
     sys.path.insert(0, module_path)
@@ -98,7 +99,7 @@ class PatternWidget(QtGui.QGraphicsView):
         self.setFocus()
         self.setRenderHint(QtGui.QPainter.Antialiasing)
         self.centerOn(0, 0)
-        
+        self.resize(400, 400)
         self.spotSize = 30
         
         brush = QtGui.QBrush(QtGui.QColor(self.colorSequence[0]), 
@@ -108,7 +109,8 @@ class PatternWidget(QtGui.QGraphicsView):
         pen.setCapStyle(QtCore.Qt.FlatCap)
         pen.setWidth(self.spotSize/8)
         pen.setJoinStyle(QtCore.Qt.MiterJoin)
-    
+        self.pen = pen
+        
         scene = PatternScene()
         self.setScene(scene)
         
