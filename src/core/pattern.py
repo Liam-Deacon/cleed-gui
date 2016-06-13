@@ -40,6 +40,12 @@ import numpy as np
 class Spot(MillerIndex):
     '''
     Class for defining a LEED spot
+    
+    A collection of common spots constitute a LEED domain with the order 
+    increasing with the h and k Miller indices. The maximum order is 
+    given by the radius of the Ewald sphere (or circle in 2 dimensions), 
+    and is a function of the energy, beyond which a spot cannot be 
+    seen in a real world LEED pattern.
     '''
     def __init__(self, x, y, h, k):
         MillerIndex.__init__(self, h, k)
@@ -71,13 +77,17 @@ class Spot(MillerIndex):
 
 
 class Domain(SuperStructure):
+    ''' Class for storing LEED domain information
+    
+    There can be many domains for any given LEED pattern
+    '''
     def __init__(self, matrix=np.identity(2, dtype=float), 
                  pattern=None, matrix_op=None, radius=1.):
         SuperStructure.__init__(self, super_matrix=matrix)
         self.pattern = pattern
         if isinstance(pattern, UnitCell):
             self.a = pattern.a
-            self.b = pattern.b
+            self.c = pattern.c
             self.basis = pattern.basis
             self.alpha = pattern.alpha
             self.beta = pattern.beta
@@ -118,10 +128,12 @@ class Domain(SuperStructure):
         value = float(op[1:])
         M11, M12, M21, M22 = list(self.M[0] + self.M[1])
         m11, m12, m21, m22 = list(self.M[0] + self.M[1])
+        a1, a2 = self.basis[0], self.basis[1]
         if op[0] == 'r':
             det = a1[0]*a2[1] - a1[1]*a2[0]
             aux2 = (a1[0]*a2[0] + a1[1]*a2[1]) / det
-
+            phi = float(op[1:])
+            
             N11 =  cos(phi) - aux2*sin(phi)
             N12 =  sin(phi) * (a1[0]*a1[0] + a1[1]*a1[1]) / det
             N21 = -sin(phi) * (a2[0]*a2[0] + a2[1]*a2[1]) / det
@@ -141,12 +153,12 @@ class Domain(SuperStructure):
             det = a1[0]*a2[1] - a1[1]*a2[0]
             aux2 = (a1[0]*a2[1] + a1[1]*a2[0]) / det
 
-            if line[1] == 'x':
+            if op[1] == 'x':
                 N11 = aux2
                 N12 = -2 * a1[0]*a1[1] / det
                 N21 =  2 * a2[0]*a2[1] / det
                 N22 = -aux2
-            elif line[1] == 'y':
+            elif op[1] == 'y':
                 N11 = -aux2
                 N12 =  2 * a1[0]*a1[1] / det
                 N21 = -2 * a2[0]*a2[1] / det
@@ -220,7 +232,7 @@ class Domain(SuperStructure):
                     x, y = (s1*b1[0] + s2*b2[0], s1*b1[1] + s2*b2[1])
                     h, k = (s1*m22 - s2*m12, s2*m11 - s1*m21)
                     if (x*x + y*y) <= r_max**2: 
-                      spots.append(Spot(x, y, h, k))
+                        spots.append(Spot(x, y, h, k))
              
         else:
             # If the Mii are not integer, the superstructure is incommensurate.
@@ -229,27 +241,35 @@ class Domain(SuperStructure):
 
             # add multiple scattering SS spots to list */
             for h in range(-h_max, h_max+1):
-              for k in range(-k_max, k_max+1):
-                  if h != 0 or k != 0:
-                      xi = h*a1[0] + k*a2[0]
-                      yi = h*a1[1] + k*a2[1]
+                for k in range(-k_max, k_max+1):
+                    if h != 0 or k != 0:
+                        xi = h*a1[0] + k*a2[0]
+                        yi = h*a1[1] + k*a2[1]
                   
-                  if (xi*xi + yi*yi) <= r_max: 
-                    for s1 in range(-smax_1, smax_1):
-                      for s2 in range(-smax_2, smax_2):
-                          x = xi + s1*b1[0] + s2*b2[0]
-                          y = yi + s1*b1[1] + s2*b2[1]
+                    if (xi*xi + yi*yi) <= r_max: 
+                        for s1 in range(-smax_1, smax_1):
+                            for s2 in range(-smax_2, smax_2):
+                                x = xi + s1*b1[0] + s2*b2[0]
+                                y = yi + s1*b1[1] + s2*b2[1]
                       
-                          if (x*x + y*y) <= r_max**2 and (s1 != 0 or s2 != 0):
-                              spots.append(Spot(x, y, h, k))
+                                if ((x*x + y*y) <= r_max**2 and 
+                                    (s1 != 0 or s2 != 0)):
+                                    spots.append(Spot(x, y, h, k))
         return spots
 
 
 class Pattern(Domain):
+    '''
+    Class for storing LEED pattern information for commensurate structures
+    '''
     def __init__(self, domains=[], radius=1., *args, **kwargs):
         kwargs['radius'] = radius
         Domain.__init__(self, *args, **kwargs)
         self.domains = domains
+    
+    def __repr(self):
+        return ("Pattern(radius={r}, domains={domains})"
+                "".format(r=self.radius, domains=self.domains))
     
     def __str__(self):
         return ('# Pattern:\n'
@@ -460,10 +480,10 @@ class Pattern(Domain):
         # calculate substrate spots
         for h in range(-h_max, h_max+1):
             for k in range(-k_max, k_max+1):
-              xi = h * a1[0] + k * a2[0]
-              yi = h * a1[1] + k * a2[1]
-              if (xi*xi + yi*yi) <= r_max**2:
-                  spots.append(Spot(xi, yi, h, k))
+                xi = h * a1[0] + k * a2[0]
+                yi = h * a1[1] + k * a2[1]
+                if (xi*xi + yi*yi) <= r_max**2:
+                    spots.append(Spot(xi, yi, h, k))
   
         return spots
 
@@ -492,10 +512,12 @@ def is_fraction(numerator, denominator):
     
     return numerator, denominator
     
+    
 if __name__ == '__main__':
+    import os
     res = os.path.join(os.path.dirname(__file__), '..', '..', 'res')
     res = os.path.abspath(res)
-    filename = os.path.join('examples', 'patt', 'bcc100.2x1_1.patt')
+    filename = os.path.join(res, 'examples', 'patt', 'bcc100.2x1_1.patt')
     patt = Pattern.read(filename)
-    print('pattern = ', patt)
-    print('\n'.join([repr(spot) for spot in patt.calculate_spots() if spot.index() == (0, 0)]))
+    print('pattern = ' + str(patt))
+    print('\n'.join([str(spot) for spot in patt.calculate_spots() if spot.order() < 3]))
