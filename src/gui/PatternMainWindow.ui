@@ -18,11 +18,7 @@
     <normaloff>:/pattern.svg</normaloff>:/pattern.svg</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout_3">
-    <item>
-     <widget class="QGraphicsView" name="pattern"/>
-    </item>
-   </layout>
+   <layout class="QVBoxLayout" name="verticalLayout_3"/>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

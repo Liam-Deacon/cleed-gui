@@ -44,7 +44,7 @@ except ImportError:
     sys.path.insert(0, module_path)
     import pattern
 
-class CirclePath(QtGui.QGraphicsPathItem):
+class CircleItem(QtGui.QGraphicsPathItem):
     def __init__(self, parent=None, pos=(0, 0), pen=None, brush=None):
         super(CircleItem, self).__init__(parent)
         
@@ -91,7 +91,7 @@ class PatternWidget(QtGui.QGraphicsView):
     shapeSequence = ['circle', 'triangle_up', 'triangle_down', 'square', 
                      'rhombus', 'star', 'hexagon']
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, size=(400, 400)):
         super(PatternWidget, self).__init__(parent)
         self.setWindowTitle('Pattern')
         self.setWindowIcon(QtGui.QIcon(':/pattern.svg'))
@@ -99,7 +99,7 @@ class PatternWidget(QtGui.QGraphicsView):
         self.setFocus()
         self.setRenderHint(QtGui.QPainter.Antialiasing)
         self.centerOn(0, 0)
-        self.resize(400, 400)
+        self.resize(*size)
         self.spotSize = 30
         
         brush = QtGui.QBrush(QtGui.QColor(self.colorSequence[0]), 
