@@ -106,11 +106,18 @@ class PainterWidget(QtGui.QWidget):
         
         layout = QtGui.QVBoxLayout()
         
+        more_widget = QtGui.QWidget()
+        hlayout = QtGui.QHBoxLayout()
+        antialias_checkbox = QtGui.QCheckBox("Antialising")
+        hlayout.addWidget(antialias_checkbox)
+        more_widget.setLayout(hlayout) 
+        
         penWidget = PenWidget(parent, pen)
         brushWidget = BrushWidget(parent, brush)
         
         layout.addWidget(penWidget)
         layout.addWidget(brushWidget)
+        layout.addWidget(more_widget)
         
         self.setLayout(layout)
         
