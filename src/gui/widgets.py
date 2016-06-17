@@ -126,7 +126,16 @@ class ColorComboBox(QtGui.QComboBox):
         
 
 class BrushWidget(QtGui.QWidget):
-    """ Widget class for controlling brush options """
+    """ Widget class for controlling brush options 
+    
+    Attributes
+    ----------
+    
+    FILL_STYLES: dictionary of different supported fill styles
+    
+    brushChanged: signal emitted when brush is altered.
+    
+    """
     
     FILL_STYLES = OrderedDict((
                     ('Solid', QtCore.Qt.SolidPattern),
@@ -151,7 +160,17 @@ class BrushWidget(QtGui.QWidget):
                     )
                 )
     
+    brushChanged = QtCore.Signal(QtGui.QBrush)
+    
     def __init__(self, parent=None, brush=None):
+        """
+        Initialises BrushWidget instance.
+        
+        Arguments
+        ---------
+        parent: widget to belong to (or None)
+        brush: brush to use, otherwise use default.
+        """
         super(self.__class__, self).__init__(parent)
         
         # set brush
@@ -178,13 +197,39 @@ class BrushWidget(QtGui.QWidget):
         color_label_2 = QtGui.QLabel("Fill Color 2")
         layout.addWidget(color_label_2, 3, 0)
         color_combo_2 = ColorComboBox()
-        color_combo.setToolTip("Choose secondary fill color")
+        color_combo_2.setToolTip("Choose secondary fill color")
         layout.addWidget(color_combo_2, 3, 1)
         fill_color_2 = ColorButton()
         fill_color_2.setToolTip("Choose custom color for secondary brush fill")
         layout.addWidget(fill_color_2, 3, 2)
+
+        color_label_3 = QtGui.QLabel("Fill Color 3")
+        layout.addWidget(color_label_3, 4, 0)
+        color_combo_3 = ColorComboBox()
+        color_combo_3.setToolTip("Choose tertiary fill color")
+        layout.addWidget(color_combo_3, 4, 1)
+        fill_color_3 = ColorButton()
+        fill_color_3.setToolTip("Choose custom color for tertiary brush fill")
+        layout.addWidget(fill_color_3, 4, 2)
         
         self.setLayout(layout)
+        
+    def _populateFillStyles(self):
+        raise NotImplementedError("TODO")
+    
+        size = 160
+        for i, cap in enumerate(self.CAPS):
+            pixmap = QtGui.QPixmap(size, size) 
+            pixmap.fill(QtCore.Qt.transparent)   
+            painter = QtGui.QPainter(pixmap)
+            pen = QtGui.QPen(self.pen)
+            pen.setWidth(0.25*size)
+            pen.setCapStyle(self.CAPS[cap])
+            painter.setPen(pen)
+            painter.drawLine(0.25*size, 0.25*size, 0.25*size, 0.75*size)
+            painter.drawLine(0.25*size, 0.75*size, 0.75*size, 0.75*size)
+            self.cap_combo.setItemIcon(i, QtGui.QIcon(pixmap))
+            del(painter)
         
         
 class PenWidget(QtGui.QWidget):
@@ -204,6 +249,9 @@ class PenWidget(QtGui.QWidget):
               'Dash Dot Dot': QtCore.Qt.DashDotDotLine,
               'None' : QtCore.Qt.NoPen,
               }
+    PIXMAP_SIZE = 160
+    
+    penChanged = QtCore.Signal(QtGui.QPen)
     
     def __init__(self, parent=None, pen=None):
         super(self.__class__, self).__init__(parent)
@@ -219,40 +267,128 @@ class PenWidget(QtGui.QWidget):
         width_spinbox = QtGui.QDoubleSpinBox()
         width_spinbox.setToolTip("Sets the line thickness")
         layout.addWidget(width_spinbox, 1, 1)
+        width_spinbox.valueChanged.connect(self.setPenWidth)
         
-        style_label = QtGui.QLabel("Pen Style")
+        style_label = QtGui.QLabel("Dash Style")
         layout.addWidget(style_label, 2, 0) 
         style_combo = QtGui.QComboBox()
         style_combo.setToolTip("Chooses a line style")
         style_combo.addItems(self.STYLES.keys())
         layout.addWidget(style_combo, 2, 1)
+        self.dash_combo = style_combo
+        self._populatePenStyleIcons()
+        self.dash_combo.activated.connect(self.setPenStyle)
+        self.dash_combo.currentIndexChanged.connect(self.setPenStyle)
         
-        cap_label = QtGui.QLabel("Pen Cap")
+        cap_label = QtGui.QLabel("Cap Style")
         layout.addWidget(cap_label, 3, 0)
         cap_combo = QtGui.QComboBox()
         cap_combo.setToolTip("Chooses a line capping")
         cap_combo.addItems(self.CAPS.keys())
         layout.addWidget(cap_combo, 3, 1)
+        self.cap_combo = cap_combo
+        self._populateCapStyleIcons()
+        self.cap_combo.activated.connect(self.setCapStyle)
+        self.cap_combo.currentIndexChanged.connect(self.setCapStyle)
         
-        join_label = QtGui.QLabel("Pen Join")
+        join_label = QtGui.QLabel("Join Style")
         layout.addWidget(join_label, 4, 0)
         join_combo = QtGui.QComboBox()
         join_combo.setToolTip("Chooses a line joining")
         join_combo.addItems(self.JOINS.keys())
         layout.addWidget(join_combo, 4, 1)
+        self.join_combo = join_combo
+        self._populateJoinStyleIcons()
+        self.join_combo.activated.connect(self.setJoinStyle)
+        self.join_combo.currentIndexChanged.connect(self.setJoinStyle)
         
         color_label = QtGui.QLabel("Pen Color")
         layout.addWidget(color_label, 5, 0)
         color_combo = ColorComboBox()
         color_combo.setToolTip("Choose a color for the line")
         layout.addWidget(color_combo, 5, 1)
+        self.color_combo = color_combo
+        self.color_combo.activated.connect(self.setColor)
+        self.color_combo.currentIndexChanged.connect(self.setColor)
+        
         color_button = ColorButton()
         color_button.setToolTip("Choose a custom color for the line")
         layout.addWidget(color_button, 5, 2)
+        self.color_button = color_button
         
         self.setLayout(layout)
         
-            
+        self.penChanged.connect(lambda x: print(x))
+        
+    def _populateCapStyleIcons(self):
+        """ Populates cap_combo items with icons for the different cap styles"""
+        size = self.PIXMAP_SIZE
+        for i, cap in enumerate(self.CAPS):
+            pixmap = QtGui.QPixmap(size, size) 
+            pixmap.fill(QtCore.Qt.transparent)   
+            painter = QtGui.QPainter(pixmap)
+            pen = QtGui.QPen(self.pen)
+            pen.setWidth(0.25*size)
+            pen.setCapStyle(self.CAPS[cap])
+            painter.setPen(pen)
+            painter.drawLine(0.25*size, 0.25*size, 0.25*size, 0.75*size)
+            painter.drawLine(0.25*size, 0.75*size, 0.75*size, 0.75*size)
+            self.cap_combo.setItemIcon(i, QtGui.QIcon(pixmap))
+            del(painter)
+
+    def _populateJoinStyleIcons(self):
+        """ Populates join_combo items with icons for the different join types """
+        size = self.PIXMAP_SIZE
+        for i, join in enumerate(self.JOINS):
+            pixmap = QtGui.QPixmap(size, size) 
+            pixmap.fill(QtCore.Qt.transparent)   
+            painter = QtGui.QPainter(pixmap)
+            pen = QtGui.QPen(self.pen)
+            pen.setWidth(size/2.)
+            pen.setJoinStyle(self.JOINS[join])
+            painter.setPen(pen)
+            painter.drawRect((7/16.)*size, (7/16.)*size, size, size)
+            self.join_combo.setItemIcon(i, QtGui.QIcon(pixmap))
+            del(painter)
+     
+    def _populatePenStyleIcons(self):
+        """ Populates dash_combo items with icons for the different dash types """
+        size = self.PIXMAP_SIZE
+        for i, style in enumerate(self.STYLES):
+            pixmap = QtGui.QPixmap(size, size) 
+            pixmap.fill(QtCore.Qt.transparent)   
+            painter = QtGui.QPainter(pixmap)
+            pen = QtGui.QPen(self.pen)
+            pen.setWidth(size/10.)
+            pen.setStyle(self.STYLES[style])
+            painter.setPen(pen)
+            painter.drawLine(0, size/2., size, size/2.)
+            self.dash_combo.setItemIcon(i, QtGui.QIcon(pixmap))
+            del(painter)
+    
+    def setCapStyle(self, cap):
+        self.pen.setCapStyle(cap)
+        self.penChanged.emit(self.pen)
+    
+    def setColor(self, color):
+        if isinstance(color, int):
+            self.pen.setColor(self.color_combo.color)
+        else:
+            raise ValueError(color)
+        self.penChanged.emit(self.pen)
+    
+    def setJoinStyle(self, join):
+        self.pen.setJoinStyle(join)
+        self.penChanged.emit(self.pen)
+    
+    def setPenStyle(self, style):
+        self.pen.setStyle(style)
+        self.penChanged.emit(self.pen)        
+    
+    def setPenWidth(self, width):
+        self.pen.setWidth(width)
+        self.penChanged.emit(self.pen)
+    
 class PainterWidget(QtGui.QWidget):
     """ Widget for controlling painter options including pen & brush options """
     def __init__(self, parent=None, pen=None, brush=None):
