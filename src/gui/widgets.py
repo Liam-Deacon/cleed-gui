@@ -115,6 +115,9 @@ class ColorComboBox(QtGui.QComboBox):
             self.custom_colors.insert(0, self.custom_color)
             for i in range(len(self.custom_colors)):
                 self.dlg.setCustomColor(i, self.custom_colors[i].rgba())
+        pixmap = QtGui.QPixmap(*self.PIXMAP_SIZE)
+        pixmap.fill(QtGui.QColor(self.custom_color))
+        self.setItemIcon(len(self.COLOR_NAMES), QtGui.QIcon(pixmap))
     
     @property
     def color(self):
@@ -268,6 +271,8 @@ class PenWidget(QtGui.QWidget):
         width_spinbox.setToolTip("Sets the line thickness")
         layout.addWidget(width_spinbox, 1, 1)
         width_spinbox.valueChanged.connect(self.setPenWidth)
+        width_spinbox.setValue(self.pen.width())
+        self.width_spinbox = width_spinbox
         
         style_label = QtGui.QLabel("Dash Style")
         layout.addWidget(style_label, 2, 0) 
@@ -277,7 +282,6 @@ class PenWidget(QtGui.QWidget):
         layout.addWidget(style_combo, 2, 1)
         self.dash_combo = style_combo
         self._populatePenStyleIcons()
-        self.dash_combo.activated.connect(self.setPenStyle)
         self.dash_combo.currentIndexChanged.connect(self.setPenStyle)
         
         cap_label = QtGui.QLabel("Cap Style")
@@ -288,7 +292,6 @@ class PenWidget(QtGui.QWidget):
         layout.addWidget(cap_combo, 3, 1)
         self.cap_combo = cap_combo
         self._populateCapStyleIcons()
-        self.cap_combo.activated.connect(self.setCapStyle)
         self.cap_combo.currentIndexChanged.connect(self.setCapStyle)
         
         join_label = QtGui.QLabel("Join Style")
@@ -299,7 +302,6 @@ class PenWidget(QtGui.QWidget):
         layout.addWidget(join_combo, 4, 1)
         self.join_combo = join_combo
         self._populateJoinStyleIcons()
-        self.join_combo.activated.connect(self.setJoinStyle)
         self.join_combo.currentIndexChanged.connect(self.setJoinStyle)
         
         color_label = QtGui.QLabel("Pen Color")
@@ -308,13 +310,14 @@ class PenWidget(QtGui.QWidget):
         color_combo.setToolTip("Choose a color for the line")
         layout.addWidget(color_combo, 5, 1)
         self.color_combo = color_combo
-        self.color_combo.activated.connect(self.setColor)
         self.color_combo.currentIndexChanged.connect(self.setColor)
         
         color_button = ColorButton()
         color_button.setToolTip("Choose a custom color for the line")
         layout.addWidget(color_button, 5, 2)
         self.color_button = color_button
+        self.color_button.colorChanged.connect(self.setColor)
+        self.color_button.colorChanged.connect(self.color_combo.updateCustomColors)
         
         self.setLayout(layout)
         
@@ -370,11 +373,32 @@ class PenWidget(QtGui.QWidget):
         self.pen.setCapStyle(cap)
         self.penChanged.emit(self.pen)
     
+    @QtCore.Slot(int)
+    @QtCore.Slot(QtGui.QColor)
     def setColor(self, color):
         if isinstance(color, int):
-            self.pen.setColor(self.color_combo.color)
+            self.pen.setColor(QtGui.QColor(self.color_combo.itemText(color)))
+            if color == len(self.color_combo.COLOR_NAMES):
+                self.color_button.set_color(self.color_combo.custom_color)
+        elif isinstance(color, basestring):
+            self.pen.setColor(QtGui.QColor(color))
         else:
-            raise ValueError(color)
+            try:
+                self.pen.setColor(color)
+                if isinstance(self.sender(), ColorButton):
+                    color_name = None 
+                    pen_name = self.pen.color().name()
+                    for i in range(len(self.color_combo.COLOR_NAMES)):
+                        item_name = QtGui.QColor(self.color_combo.itemText(i)).name()
+                        if item_name == pen_name:
+                            self.color_combo.setCurrentIndex(i)
+                            color_name = item_name
+                            break
+                    if not color_name:
+                        self.color_combo.setCurrentIndex(len(self.color_combo.COLOR_NAMES))
+                        self.color_combo.updateCustomColor(color)
+            except:
+                raise
         self.penChanged.emit(self.pen)
     
     def setJoinStyle(self, join):
