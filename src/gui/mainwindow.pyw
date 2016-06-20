@@ -975,6 +975,8 @@ class MainWindow(QtGui.QMainWindow):
     def readSettings(self):
         settings = QtCore.QSettings(__APP_DISTRIBUTION__, __APP_NAME__)
         
+        self.logger.info("Reading settings from '{}'".format(settings.fileName()))
+        
         # window geometry settings
         pos = settings.value("mainwindow/position", QtCore.QPoint(200, 200))
         size = settings.value("mainwindow/size", QtCore.QSize(400, 400))
