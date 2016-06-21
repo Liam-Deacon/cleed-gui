@@ -43,6 +43,9 @@ from copy import deepcopy
 from collections import OrderedDict, Sequence
 
 class Atom(phaseshifts.model.Atom):
+    '''
+    Wrapper class for CLEED atom
+    '''
     def __init__(self, *args, **kwargs):
         self.dr = kwargs.pop('dr', [0.025])
         phaseshifts.model.Atom.__init__(self, *args, **kwargs)
@@ -63,26 +66,35 @@ class Atom(phaseshifts.model.Atom):
     
     @dr.setter
     def dr(self, dr):
-        if len(dr) is 1:
-            self._dr = [float(x) for x in dr[:1]]
-        elif len(dr) is 3:
-            self._dr = [float(x) for x in dr[:3]]
+        if len(dr) == 1 or len(dr) == 3:
+            self._dr = [float(x) for x in dr]
         else:
             raise TypeError('dr must be array-like of length 1 or 3')
 
-class UnitCell(phaseshifts.model.Unitcell):
-    def __init__(self, a=1., c=1., 
-                 matrix3x3=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], 
-                 *args, **kwargs):
-        super(UnitCell, self).__init__(a, c, matrix3x3, *args, **kwargs)
-    
-    def __str__(self, *args, **kwargs):  
-        return ('# unitcell:\n'
-                'a1: {:.6f} {:.6f} {:.6f}\n'
-                'a2: {:.6f} {:.6f} {:.6f}\n'
-                'a3: {:.6f} {:.6f} {:.6f}\n'
-                ''.format(list(self.basis[0] + self.basis[1] + self.basis[2])))
 
+class UnitCell(phaseshifts.model.Unitcell):
+    """ CLEED UnitCell class """
+    def __init__(self, a=1., c=1., 
+                 basis=[[1, 0, 0], [0, 1, 0], [0, 0, 1]], 
+                 bulk=True, **kwargs):
+        super(UnitCell, self).__init__(a, c, 
+                                       basis[:2] if bulk else basis, 
+                                       **kwargs)
+    
+    def __str__(self):
+        if self.bulk or len(self.basis) == 3:  
+            return ('# unitcell:\n'
+                    'a1: {:.6f} {:.6f} {:.6f}\n'
+                    'a2: {:.6f} {:.6f} {:.6f}\n'
+                    'a3: {:.6f} {:.6f} {:.6f}\n'
+                    ''.format(list(self.basis[0] + self.basis[1] + self.basis[2])))
+        else:
+            return ('# unitcell:\n'
+                                'a1: {:.6f} {:.6f} {:.6f}\n'
+                                'a2: {:.6f} {:.6f} {:.6f}\n'
+                                ''.format(list(self.basis[0] + self.basis[1])))
+            
+            
 class SuperStructure(UnitCell):
     STRUCTURES = OrderedDict([('p(1x1)', ((1., 0.), (0., 1.))),
                               ('p(1x2)', ((1., 0.), (0., 2.))),
@@ -110,10 +122,8 @@ class SuperStructure(UnitCell):
                               ('(5r3x2)rect-hex', ((2., 2.), (-5., 5.))),
                               ('c(2r3x4)rect-hex', ((3., 1.), (1., 3.)))])
     
-    def __init__(self, 
-                 a=0, c=0, super_matrix=[[1., 0.], [0., 1.]], 
-                 *args, **kwargs):
-        UnitCell.__init__(self, a, c, *args, **kwargs)
+    def __init__(self,  a=0, c=0, super_matrix=[[1., 0.], [0., 1.]], **kwargs):
+        UnitCell.__init__(self, a, c, **kwargs)
         self.M = super_matrix
         if 'basis' in kwargs:
             self.basis = kwargs['basis']
@@ -149,17 +159,13 @@ class SuperStructure(UnitCell):
         except IndexError:
             IndexError('basis must be 2x2 or 3x3 matrix')
 
-    def __str__(self, *args, **kwargs):
-        return ('# supercell:\n'
-                'a1: {}\n'
-                'a2: {}\n'
+    def __str__(self):
+        return (str(UnitCell.__str__(self)).replace('unitcell', 'supercell') +
                 '\n'
                 '# superstructure matrix:\n'
                 'm1: {} {}\n'
                 'm2: {} {}\n'
-                ''.format(' '.join([':.6f'.format(a) for a in self.basis[0]]),
-                          ' '.join([':.6f'.format(a) for a in self.basis[1]]),
-                          self.m11, self.m12, self.m21, self.m22))
+                ''.format(self.m11, self.m12, self.m21, self.m22))
     
     def __repr__(self):
         return ("SuperStructure(super_matrix={}, a={}, b={},"
@@ -230,6 +236,11 @@ class BaseModel(phaseshifts.model.Model):
     
     COMMANDS = ['c']
     
+    def __init__(self, unitcell=UnitCell(), atoms=[], *args, **kwargs):
+        ''' wrapper for phaseshifts.Model.__init__() with default args '''
+        super(BaseModel, self).__init__(unitcell=unitcell, atoms=atoms,
+                                        *args, **kwargs)
+    
     def export_xyz(self, xyz_file, comment_line=''):
         comment_line = comment_line if comment_line is not '' else xyz_file
         try:
@@ -257,8 +268,8 @@ class BaseModel(phaseshifts.model.Model):
     def comment(self, comment):
         self._comment = comment
     
-    @staticmethod
-    def eval_line(line):
+    @classmethod
+    def eval_line(cls, line):
         '''
         Evaluates input line
         '''
@@ -303,8 +314,8 @@ class BaseModel(phaseshifts.model.Model):
         else:
             return None
     
-    @staticmethod
-    def eval(filename):
+    @classmethod
+    def eval(cls, filename):
         cmds_dict = {}
         with open(filename, 'r') as f:
             for line in f:
@@ -342,17 +353,30 @@ class BaseModel(phaseshifts.model.Model):
 class BulkModel(BaseModel):
     '''Class for specifying CLEED bulk structure'''
     
-    COMMANDS = BaseModel.COMMANDS + ['a1', 'a2', 'a3', 'm1', 'm2']
+    COMMANDS = BaseModel.COMMANDS + ['a1', 'a2', 'a3', 
+                                     'm1', 'm2',
+                                     'vr', 'vi',
+                                     'ei', 'ef', 'es',
+                                     'it', 'ip', 
+                                     'ep',
+                                     'lm']
     
     @classmethod
     def load(cls, filename):
-        kwargs = BulkModel.eval(filename)
-        bulk_model = BulkModel()
+        kwargs = cls.eval(filename)
         
-        uc = UnitCell(a=kwargs.pop('a1'), 
-                      b=kwargs.pop('a2'),
-                      c=kwargs.pop('a3'),
-                      coordinates=kwargs.pop())
+        magnitude = lambda x: sum(i**2 for i in x)**0.5
+        
+        uc = UnitCell(a=magnitude(kwargs.get('a1', [1, 0, 0])), 
+                      b=magnitude(kwargs.get('a2', [0, 1, 0])),
+                      c=magnitude(kwargs.get('a3', [0, 0, 1])),
+                      matrix3x3=[kwargs.get('a1', [1, 0, 0]),
+                                 kwargs.get('a2', [0, 1, 0]),
+                                 kwargs.get('a3', [0, 0, 1])])
+        
+        bulk_model = cls(unitcell=uc, **kwargs)
+        
+        return bulk_model
 
     def save(self, filename, extra_cmds={}):
         ''' Saves BulkModel instance to `filename`
@@ -390,8 +414,8 @@ class BulkModel(BaseModel):
         except IOError as err:
             raise err
     
-    @staticmethod
-    def eval_line(line):
+    @classmethod
+    def eval_line(cls, line):
         line = line.lstrip()
         cmd = line.split(':')[0]
         if cmd in self.COMMANDS:
@@ -400,9 +424,14 @@ class BulkModel(BaseModel):
 
 
 class SurfaceModel(BaseModel):
+    COMMANDS = BaseModel.COMMANDS + ['a1', 'a2', 
+                                     'm1', 'm2',
+                                     'zr', 'sz', 'sr',
+                                     'rm']
+    
     '''Class for specifying CLEED surface structure'''
     def __init__(self, rot_sym=None, mirror_plane=None, *args, **kwargs):
-        BaseModel.__init__(self, *args, **kwargs)
+        super(SurfaceModel, self).__init__(*args, **kwargs)
         self.rotational_symmetry = rot_sym
         self.mirror_plane = mirror_plane
     
@@ -444,12 +473,13 @@ class SurfaceModel(BaseModel):
         if isinstance(mirror_plane, MirrorPlane):
             self._sm = mirror_plane
     
+    @classmethod
     def load(self, filename):
         lines = []
         with open(filename, 'r') as f:
             lines = [line.lstrip() for line in f]
         
-        atoms = [self._eval_po for po in lines if po.startswith('po:')]
+        atoms = [cls.eval_line(po) for po in lines if po.startswith('po:')]
         unitcell = UnitCell()
         superstructure = SuperStructure()
         comments = ' '.join([c for c in lines if c.startswith('c:')])
@@ -532,7 +562,7 @@ def inp2xyz(filename, xyz_filename=None):
                     "set zShadePower 3;"
                     "\n")
             for atom in atoms:
-                f.write(atom + '\n')
+                f.write(str(atom) + '\n')
             
     except IOError:
         raise IOError("***error (inp2xyz): Could not write file '%s'" 
