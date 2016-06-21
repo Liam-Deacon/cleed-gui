@@ -242,8 +242,8 @@ class BaseModel(phaseshifts.model.Model):
         except any as e:
             raise e
     
-    @staticmethod
-    def load(filename):
+    @classmethod
+    def load(cls, filename):
         raise NotImplementedError
         
     def save(self, filename):
@@ -344,8 +344,8 @@ class BulkModel(BaseModel):
     
     COMMANDS = BaseModel.COMMANDS + ['a1', 'a2', 'a3', 'm1', 'm2']
     
-    @staticmethod
-    def load(filename):
+    @classmethod
+    def load(cls, filename):
         kwargs = BulkModel.eval(filename)
         bulk_model = BulkModel()
         

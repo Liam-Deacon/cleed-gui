@@ -49,8 +49,15 @@ except ImportError:
     module_path = os.path.join(module_path, 'core')
     sys.path.insert(0, module_path)
     import core
+finally:
+    from core.model import Model, BulkModel, SurfaceModel, Atom
 
 class ProjectTreeWidget(QtGui.QTreeWidget):
+    default_dir = os.path.join(os.path.expanduser("~"), "CLEED", "models")
+    examples_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                                "..", "..", "res", "examples", "models")
+    last_project_dir = default_dir
+    
     def __init__(self, parent=None):
         super(ProjectTreeWidget, self).__init__(parent)
         
@@ -147,10 +154,10 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
         for i in range(childCount):
             child = index.child(i, 0)
             # Recursively call the function for each child node.
-            expandChildren(child)
+            self.expandChildren(child)
 
-        if not view.expanded(index):
-            view.expand(index)
+        if not self.view.expanded(index):
+            self.view.expand(index)
     
     def explorerPopupMenu(self, point):
         '''popup menu for explorer widget'''
@@ -191,6 +198,8 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
         homePath = QtGui.QDesktopServices.storageLocation(
                                         QtGui.QDesktopServices.HomeLocation)
         projectDir = os.path.join(homePath, "CLEED", "models")
+        if not os.path.exists(projectDir):
+            projectDir = self.examples_dir
         folder = QtGui.QFileDialog.getExistingDirectory(parent=self, 
                             caption="Select Project Base Directory",
                             directory=projectDir, 
@@ -218,7 +227,7 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
         try:
             index = self.selectedIndexes()[0]
             parent = self.itemFromIndex(index)
-            path = os.path.join(parent.Path, modelName)
+            path = os.path.join(parent.project_path, modelName)
              
             if not modelName:
                 modelName = "New_Model"
@@ -229,7 +238,7 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
                     path = os.path.join(parent.Path, modelName)
                     i += 1
             
-            model = ModelItem(path)
+            model = ModelGroupItem(path)
             a = parent.addChild(model)
             if not os.path.exists(path):
                 os.makedirs(path, 755)
@@ -254,7 +263,7 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
             self.projects.append(project)
     
     def removeProject(self):
-        print(self.treeWidgetFiles.getCurrentIndex())
+        print(self.getCurrentIndex())
         self.todo()
     
     def rename(self):
@@ -276,9 +285,9 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
     
     def getChildItemsDict(self, obj):
         try:
-            if isinstance(obj, QTreeWidget):
+            if isinstance(obj, QtGui.QTreeWidget):
                 root = obj.invisibleRootItem()
-            elif isinstance(obj, QTreeWidgetItem):
+            elif isinstance(obj, QtGui.QTreeWidgetItem):
                 root = obj
             child_count = root.childCount()
             topLevelDict = {}
@@ -292,9 +301,9 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
             self.logger.error(e.msg)
             
     def getChildItemHandle(self, obj, name=str):
-        if isinstance(obj, QTreeWidget):
+        if isinstance(obj, QtGui.QTreeWidget):
             root = obj.invisibleRootItem()
-        elif isinstance(obj, QTreeWidgetItem):
+        elif isinstance(obj, QtGui.QTreeWidgetItem):
             root = obj
         
         if isinstance(name, int):
@@ -320,6 +329,18 @@ class BaseItem(QtGui.QTreeWidgetItem):
             if recursive:
                 children += BaseItem.getChildren(child, recursive)
         return children
+    
+    def doubleClicked(self, index):
+        """ Triggers doubleClick event """ 
+        old_value = ''
+        new_value, ok = QtGui.QInputDialog.getText(self, 
+                                                  self.tr("Rename"),
+                                                  self.tr("New value:"), 
+                                                  QtGui.QLineEdit.Normal,
+                                                  old_value)
+        if ok and new_value is not old_value:
+            item = self.parent.selectedIndexes()[0].model().itemFromIndex(index)
+            item.setText(self.currentColumn(), new_value)
 
 class ProjectItem(BaseItem):
     projects = []
@@ -327,9 +348,9 @@ class ProjectItem(BaseItem):
     '''class for project items'''
     def __init__(self, parent=None, path=None):
         super(ProjectItem, self).__init__(parent)
+        self.name = "New_Project{}".format(len(self.projects))
         self.setProjectPath(path)
         self.setIcon(0, QtGui.QIcon(":/folder_fill.svg"))
-        self.name = "New_Project{}".format(len(self.projects))
         self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
         #self.setProjectPath(path)
         
@@ -341,7 +362,7 @@ class ProjectItem(BaseItem):
         ProjectItem.projects.append(self)
     
     def _init_children(self):
-        model = ModelItem(self)
+        model = ModelGroupItem(self)
         self.models.append(model)
         self.addChild(model)
         
@@ -357,14 +378,15 @@ class ProjectItem(BaseItem):
     
     @property
     def project_path(self):
-        return self._path
+        return self._path or os.path.join(ProjectTreeWidget.default_dir,
+                                          self.name)
     
     @project_path.setter
     def project_path(self, path):
         self._path = path
     
     def setProjectPath(self, path):
-        path = path 
+        self.project_path = path 
         self.setText(0, 'Project{}'.format(len(ProjectItem.projects)))
         self.setToolTip(0, path)
         
@@ -377,10 +399,10 @@ class ProjectItem(BaseItem):
         self._name = name
     
         
-class ModelItem(BaseItem):
+class ModelGroupItem(BaseItem):
     '''class for project items'''
-    def __init__(self, parent=None, path=None):
-        super(ModelItem, self).__init__(parent)
+    def __init__(self, parent, path=None):
+        super(ModelGroupItem, self).__init__(parent)
         self.setIcon(0, QtGui.QIcon(":/blocks.svg"))
         self.setText(0, "New_Model")
         self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
@@ -398,7 +420,7 @@ class ModelItem(BaseItem):
     
     def setModelName(self, path):
         self.Path = path
-        self.Name = QFileInfo(path).baseName()
+        self.Name = QtCore.QFileInfo(path).baseName()
         self.setText(0, self.Name)
         self.setToolTip(0, path)
         
@@ -410,27 +432,57 @@ class ModelItem(BaseItem):
         if isinstance(group, IVGroupItem):
             self.addChild(group)
         
-            
+class ModelItem(BaseItem):
+    ''' common class for both bulk and surface model items '''
+    MODEL_CLASS = core.model.BaseModel
+    
+    def __init__(self, parent=None, model=None):
+        super(BaseItem, self).__init__(parent)
+        self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
+        
+        self.model = model
+        
+    def setModel(self, model):
+        ''' sets the model '''
+        if isinstance(model, basestring):
+            # attempt to load model assuming filepath
+            model = self.MODEL_CLASS().load(model)
+        elif model == None:
+            model = self.MODEL_CLASS()
+        else:
+            try:
+                self.MODEL_CLASS(**model)
+            except:
+                raise ValueError("{} is not a supported model type".format(model))
+        self._model = model
+        
+        
+    def getModel(self):
+        ''' gets the model '''
+        return self._model
+    
+    model = property(fset=setModel, fget=getModel)
 
-class InputItem(BaseItem):
+class InputItem(ModelItem):
+    MODEL_CLASS = SurfaceModel
+    
     '''class for project items'''
-    def __init__(self, parent=None, input=None):
-        super(InputItem, self).__init__(parent)
+    def __init__(self, parent=None, surface_model=None):
+        super(InputItem, self).__init__(parent, model=surface_model)
         self.setIcon(0, QtGui.QIcon(":/minus.svg"))
         self.setText(0, 'Surface_Model')
-        self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
         
-        self.model = None
+        
       
-class BulkItem(BaseItem):
+class BulkItem(ModelItem):
+    MODEL_CLASS = BulkModel
+    
     '''class for project items'''
-    def __init__(self, parent=None, bulk=None):
-        super(BulkItem, self).__init__(parent)
+    def __init__(self, parent=None, bulk_model=None):
+        super(BulkItem, self).__init__(parent, model=bulk_model)
         self.setIcon(0, QtGui.QIcon(":/layers.svg"))
         self.setText(0, "Bulk_Model")
-        self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
-        
-        self.model = None
+
         
         
 class SearchItem(BaseItem):
@@ -522,7 +574,7 @@ class IVInfoItem(BaseItem):
                           self.weight, self.rfactor])
         
         try:
-            if isinstance(iv_pair, IVCurvePair):
+            if isinstance(iv_pair, core.iv.IVCurvePair):
                 self.load(iv_pair)
         except:
             pass
