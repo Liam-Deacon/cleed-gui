@@ -509,10 +509,16 @@ class SearchItem(BaseItem):
 class SettingsItem(BaseItem):
     '''class for local settings'''
     def __init__(self, parent=None, path=None):
-        #super(InputItem, self).__init__(parent)
+        super(self.__class__, self).__init__(parent)
         self.setIcon(0, QtGui.QIcon(":/wrench.svg"))
-        self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
-        
+        self.setText(0, "Settings")
+        self.setToolTip(0, "Defines settings for project")
+
+
+class AtomItem(BaseItem):
+    ''' Class for handling atoms '''
+    def __init__(self, parent):
+        pass
         
 class IVGroupItem(BaseItem):
     '''class for handling LEED-IV curves'''
