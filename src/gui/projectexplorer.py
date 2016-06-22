@@ -239,7 +239,7 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
                     i += 1
             
             model = ModelGroupItem(path)
-            a = parent.addChild(model)
+            #a = parent.addChild(model)
             if not os.path.exists(path):
                 os.makedirs(path, 755)
                 # add new input files
@@ -362,9 +362,7 @@ class ProjectItem(BaseItem):
         ProjectItem.projects.append(self)
     
     def _init_children(self):
-        model = ModelGroupItem(self)
-        self.models.append(model)
-        self.addChild(model)
+        self.models.append(ModelGroupItem(self))
         
     def __del__(self):
         try:
@@ -401,7 +399,7 @@ class ProjectItem(BaseItem):
         
 class ModelGroupItem(BaseItem):
     '''class for project items'''
-    def __init__(self, parent, path=None):
+    def __init__(self, parent=None, path=None):
         super(ModelGroupItem, self).__init__(parent)
         self.setIcon(0, QtGui.QIcon(":/blocks.svg"))
         self.setText(0, "New_Model")
@@ -409,14 +407,9 @@ class ModelGroupItem(BaseItem):
         #self.setModelName(path)
         
         # init items
-        self.surface = InputItem()
-        self.bulk = BulkItem()
-        self.iv_groups = IVGroupItem()
-        
-        self.addChild(self.surface)
-        self.addChild(self.bulk)
-        
-        self.addChild(self.iv_groups)
+        self.surface = InputItem(self)
+        self.bulk = BulkItem(self)
+        self.iv_groups = IVGroupItem(self)
     
     def setModelName(self, path):
         self.Path = path
@@ -509,33 +502,42 @@ class IVGroupItem(BaseItem):
         self.setText(0, 'IV_Group')
         
         # initialise actions
-        self.iv_pairs = [IVInfoItem()]
-        
-        for iv in self.iv_pairs:
-            self.addChild(iv)
+        self.iv_pairs = [IVInfoItem(self)]
         
         # initialise other aspects
-        self.theta = QtGui.QTreeWidgetItem()
+        self.theta = QtGui.QTreeWidgetItem(self)
         self.theta.setText(0, 'Theta')
         self.theta.setIcon(0, QtGui.QIcon(':/theta.svg'))
+        self.theta.doubleClicked.connect(self._updateIncidenceAngle)
         
-        self.phi = QtGui.QTreeWidgetItem()
+        self.phi = QtGui.QTreeWidgetItem(self)
         self.phi.setText(0, 'Phi')
         self.phi.setIcon(0, QtGui.QIcon(':/phi.svg'))
+        self.phi.doubleClicked.connect(self._updateAzimuthAngle)
         
-        self.enabled = QtGui.QTreeWidgetItem()
+        self.enabled = QtGui.QTreeWidgetItem(self)
         self.enabled.setText(0, 'Enabled')
         self.enabled.setIcon(0, QtGui.QIcon(':/check.svg'))
+        self.enabled.doubleClicked.connect(self._updatedEnabled)
         
-        self.rfactor = QtGui.QTreeWidgetItem()
+        self.rfactor = QtGui.QTreeWidgetItem(self)
         self.rfactor.setText(0, 'Rfactor')
-        self.rfactor.setIcon(0, QtGui.QIcon(':/rf.svg'))
-        
-        self.addChildren([self.theta, self.phi, self.enabled, self.rfactor])
+        self.rfactor.setIcon(0, QtGui.QIcon(':/heart_fill.svg'))
         
     @classmethod
     def readControlFile(cls, ctr):
         pass
+    
+    def _updateAzimuthAngle(self):
+        print("TODO")
+        
+    def _updateEnabled(self):
+        """ Toggle enabled """
+        print("Toggle enabled")
+    
+    def _updateIncidenceAngle(self):
+        """ Updates the theta angle of incidence """
+        print("Update theta")
     
     def _createActions(self):
         self.generateControlAction = QtGui.QAction(
@@ -555,24 +557,20 @@ class IVInfoItem(BaseItem):
         self.setIcon(0, QtGui.QIcon(":/index.svg"))
         self.setText(0, '(h, k)')
         
-        self.expt = ExperimentalIVCurveItem()
-        self.theory = TheoreticalIVCurveItem()
-        
-        self.id = QtGui.QTreeWidgetItem()
+        self.expt = ExperimentalIVCurveItem(self)
+        self.theory = TheoreticalIVCurveItem(self)
+
+        self.id = QtGui.QTreeWidgetItem(self)
         self.id.setText(0, 'ID')
         self.id.setIcon(0, QtGui.QIcon(":/id.svg"))
-        
-        self.weight = QtGui.QTreeWidgetItem()
+
+        self.weight = QtGui.QTreeWidgetItem(self)
         self.weight.setText(0, 'Weight')
         self.weight.setIcon(0, QtGui.QIcon(":/eject.svg"))
-        
-        self.rfactor = QtGui.QTreeWidgetItem()
+                  
+        self.rfactor = QtGui.QTreeWidgetItem(self)
         self.rfactor.setText(0, 'Rfactor')
-        self.rfactor.setIcon(0, QtGui.QIcon(':/rf.svg'))
-        
-        self.addChildren([self.expt, self.theory, self.id, 
-                          self.weight, self.rfactor])
-        
+        self.rfactor.setIcon(0, QtGui.QIcon(":/heart_fill.svg"))
         try:
             if isinstance(iv_pair, core.iv.IVCurvePair):
                 self.load(iv_pair)
