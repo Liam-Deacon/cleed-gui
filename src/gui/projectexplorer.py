@@ -46,7 +46,6 @@ except ImportError:
     import sys
     import os
     module_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    module_path = os.path.join(module_path, 'core')
     sys.path.insert(0, module_path)
     import core
 finally:
@@ -352,6 +351,7 @@ class ProjectItem(BaseItem):
         self.setProjectPath(path)
         self.setIcon(0, QtGui.QIcon(":/folder_fill.svg"))
         self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
+        self.setToolTip(0, "LEED-IV Project")
         #self.setProjectPath(path)
         
         self.models = []
@@ -404,11 +404,12 @@ class ModelGroupItem(BaseItem):
         self.setIcon(0, QtGui.QIcon(":/blocks.svg"))
         self.setText(0, "New_Model")
         self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
+        self.setToolTip(0, "Model belonging to project")
         #self.setModelName(path)
         
         # init items
-        self.surface = InputItem(self)
-        self.bulk = BulkItem(self)
+        self.surface = SurfaceModelItem(self)
+        self.bulk = BulkModelItem(self)
         self.iv_groups = IVGroupItem(self)
     
     def setModelName(self, path):
@@ -428,11 +429,14 @@ class ModelGroupItem(BaseItem):
 class ModelItem(BaseItem):
     ''' common class for both bulk and surface model items '''
     MODEL_CLASS = core.model.BaseModel
+    __tooltip__ = "Model"
+    __description__ = ""
+    modelChanged = QtCore.Signal()
     
     def __init__(self, parent=None, model=None):
         super(BaseItem, self).__init__(parent)
         self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
-        
+
         self.model = model
         
     def setModel(self, model):
@@ -449,34 +453,50 @@ class ModelItem(BaseItem):
                 raise ValueError("{} is not a supported model type".format(model))
         self._model = model
         
-        
     def getModel(self):
         ''' gets the model '''
         return self._model
     
+    def refresh(self):
+        ''' Updates QTreeWidgetItem '''
+        try:
+            filename = self.model
+            self.setToolTip(0, self.__tooltip__ + 
+                            ' ({})\n\n'.format(filename) + self.__description__)
+        except:
+            self.setToolTip(0, self.__tooltip__ + '\n' + self.__description__)
+    
     model = property(fset=setModel, fget=getModel)
 
-class InputItem(ModelItem):
+class SurfaceModelItem(ModelItem):
     MODEL_CLASS = SurfaceModel
+    __tooltip__ = "Surface Model"
+    __description__ = "Contains input parameters that are changed during geometry optimisation"
     
     '''class for project items'''
     def __init__(self, parent=None, surface_model=None):
-        super(InputItem, self).__init__(parent, model=surface_model)
+        super(self.__class__, self).__init__(parent, model=surface_model)
         self.setIcon(0, QtGui.QIcon(":/minus.svg"))
         self.setText(0, 'Surface_Model')
         
+        self.refresh()
         
       
-class BulkItem(ModelItem):
-    MODEL_CLASS = BulkModel
-    
+class BulkModelItem(ModelItem):
     '''class for project items'''
+    
+    MODEL_CLASS = BulkModel
+    __tooltip__ = 'Bulk Model'
+    __description__ = "Contains bulk parameters that do not change"
+    
+    
     def __init__(self, parent=None, bulk_model=None):
-        super(BulkItem, self).__init__(parent, model=bulk_model)
+        super(self.__class__, self).__init__(parent, model=bulk_model)
         self.setIcon(0, QtGui.QIcon(":/layers.svg"))
         self.setText(0, "Bulk_Model")
 
-        
+        self.refresh()
+            
         
 class SearchItem(BaseItem):
     '''class for LEED-IV control items'''
@@ -508,36 +528,26 @@ class IVGroupItem(BaseItem):
         self.theta = QtGui.QTreeWidgetItem(self)
         self.theta.setText(0, 'Theta')
         self.theta.setIcon(0, QtGui.QIcon(':/theta.svg'))
-        self.theta.doubleClicked.connect(self._updateIncidenceAngle)
+        self.theta.setToolTip(0, "Angle of incidence, \u03B8")
         
         self.phi = QtGui.QTreeWidgetItem(self)
         self.phi.setText(0, 'Phi')
         self.phi.setIcon(0, QtGui.QIcon(':/phi.svg'))
-        self.phi.doubleClicked.connect(self._updateAzimuthAngle)
+        self.phi.setToolTip(0, "Azimuth for angle of incidence, \u03C6")
         
         self.enabled = QtGui.QTreeWidgetItem(self)
         self.enabled.setText(0, 'Enabled')
         self.enabled.setIcon(0, QtGui.QIcon(':/check.svg'))
-        self.enabled.doubleClicked.connect(self._updatedEnabled)
+        self.enabled.setToolTip(0, "Specifies whether this IV group is used")
         
         self.rfactor = QtGui.QTreeWidgetItem(self)
         self.rfactor.setText(0, 'Rfactor')
         self.rfactor.setIcon(0, QtGui.QIcon(':/heart_fill.svg'))
+        self.rfactor.setToolTip(0, "The R-Factor for the IV group")
         
     @classmethod
     def readControlFile(cls, ctr):
         pass
-    
-    def _updateAzimuthAngle(self):
-        print("TODO")
-        
-    def _updateEnabled(self):
-        """ Toggle enabled """
-        print("Toggle enabled")
-    
-    def _updateIncidenceAngle(self):
-        """ Updates the theta angle of incidence """
-        print("Update theta")
     
     def _createActions(self):
         self.generateControlAction = QtGui.QAction(
