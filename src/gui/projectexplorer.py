@@ -368,14 +368,13 @@ class ProjectItem(BaseItem):
     projects = []
     
     '''class for project items'''
-    def __init__(self, parent=None, path=None):
+    def __init__(self, parent=None, path=None, name=None):
         super(ProjectItem, self).__init__(parent)
-        self.name = "New_Project{}".format(len(self.projects))
-        self.setProjectPath(path)
+        self.name = name or "New_Project{}".format(len(self.projects))
         self.setIcon(0, QtGui.QIcon(":/folder_fill.svg"))
         self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
         self.setToolTip(0, "LEED-IV Project")
-        #self.setProjectPath(path)
+        self.setProjectPath(path)
         
         self.models = []
         
@@ -399,17 +398,20 @@ class ProjectItem(BaseItem):
     
     @property
     def project_path(self):
+        if not hasattr(self, "_path"): 
+            self._path = None
         return self._path or os.path.join(ProjectTreeWidget.default_dir,
                                           self.name)
     
     @project_path.setter
     def project_path(self, path):
-        self._path = path
+        self._path = path or ProjectTreeWidget.default_dir
     
     def setProjectPath(self, path):
         self.project_path = path 
-        self.setText(0, 'Project{}'.format(len(ProjectItem.projects)))
-        self.setToolTip(0, path)
+        self.setText(0, self.name)
+        self.setToolTip(0, 'LEED-IV Project: "{}"'.format(os.path.join(self.project_path, self.name)))
+        
         
     @property
     def name(self):
@@ -506,8 +508,6 @@ class SurfaceModelItem(ModelItem):
         self.setIcon(0, QtGui.QIcon(":/minus.svg"))
         self.setText(0, 'Surface_Model')
         
-        self.refresh()
-        
       
 class BulkModelItem(ModelItem):
     '''class for project items'''
@@ -516,13 +516,11 @@ class BulkModelItem(ModelItem):
     __tooltip__ = 'Bulk Model'
     __description__ = "Contains bulk parameters that do not change"
     
-    
     def __init__(self, parent=None, bulk_model=None):
         super(self.__class__, self).__init__(parent, model=bulk_model)
         self.setIcon(0, QtGui.QIcon(":/layers.svg"))
         self.setText(0, "Bulk_Model")
-
-        self.refresh()
+        
             
         
 class SearchItem(BaseItem):
