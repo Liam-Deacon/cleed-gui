@@ -465,6 +465,10 @@ class ModelItem(BaseItem):
                             ' ({})\n\n'.format(filename) + self.__description__)
         except:
             self.setToolTip(0, self.__tooltip__ + '\n' + self.__description__)
+            
+        print("TODO: clear all children")
+        if self.model:
+            atoms = [AtomItem(atom=a) for a in self.model.atoms]
     
     model = property(fset=setModel, fget=getModel)
 
@@ -517,8 +521,34 @@ class SettingsItem(BaseItem):
 
 class AtomItem(BaseItem):
     ''' Class for handling atoms '''
-    def __init__(self, parent):
-        pass
+    
+    atomChanged = QtCore.Signal()
+    
+    def __init__(self, parent=None, atom=None):
+        super(self.__class__, self).__init__(parent)
+        
+        self.atom = atom or self.newAtom()
+        self.refresh()
+        
+    def newAtom(self):
+        return Atom('C')
+    
+    def refresh(self):
+        self.setIcon(0, QtGui.QIcon(":/atom.svg"))
+        self.setText(0, self.atom.symbol)
+        self.setToolTip(0, "{} atom\n{}".format(self.atom.name, str(self.atom)))
+        
+        for i,j in enumerate(["x", "y", "z"]):
+            eval("self.{} = QtGui.QTreeWidgetItem(self)".format(j))
+            eval('self.{}.setText(0, "{} = {}")'.format(j, j, self.atom.coordinates[i]))
+            eval('self.{}.setToolTip(0, "{}-coordinate for atom"'.format(j, j.upper())
+        
+        # valence
+        
+        # fractional occupancy
+        
+        # minimum radius
+        
         
 class IVGroupItem(BaseItem):
     '''class for handling LEED-IV curves'''
