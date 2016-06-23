@@ -105,7 +105,7 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
         self.removeProjectAction = QtGui.QAction(
                                         QtGui.QIcon(":/folder_fill.svg"),
                                         "Open Project &Location", self,
-                                        triggered=self.removeProject)
+                                        triggered=self.openProjectLocation)
         self.newProjectAction.setToolTip(
                                     "Opens project location in file explorer")
         
@@ -144,6 +144,12 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
         #recent projects
         self.recent_projects = []
     
+    def openProjectLocation(self):
+        ''' Opens the currently selected project's location '''
+        import webbrowser
+        filepath = self.currentItem()._path or self.default_dir
+        webbrowser.open(filepath)
+    
     def expandChildren(self, index):
         ''' Recursely expands all children for the given index node'''
         if not index.isValid():
@@ -159,21 +165,25 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
             self.view.expand(index)
     
     def explorerPopupMenu(self, point):
-        '''popup menu for explorer widget'''
+        ''' Handles popup menu for explorer widget '''
         index = self.indexAt(point)
         if index.isValid():
+            location = self.viewport().mapToGlobal(point)
             # show custom menu for file type held at given index
             item = self.itemFromIndex(index)
             if self.indexOfTopLevelItem(item) > -1:
                 # then its a top-level item
                 self.selectionModel().setCurrentIndex(index, 
                                             QtGui.QItemSelectionModel.NoUpdate)
-                self.explorerProjectMenu.popup(
-                        self.viewport().mapToGlobal(point))
+                self.explorerProjectMenu.popup(location)
             else:
-                self.explorerFileMenu.popup(
-                        self.viewport().mapToGlobal(point))
-                print('another item: %s' % item)
+                try:
+                    self.currentItem().contextMenu.popup(location)
+                    print('Handled right click of {} "{}"'
+                          ''.format(self.currentItem(), self.currentItem().text(0)))
+                except AttributeError:
+                    print('Not handled right click of {} "{}"'
+                          ''.format(self.currentItem(), self.currentItem().text(0)))
         else:
             # provide default menu
             self.explorerDefaultMenu.popup(
@@ -262,8 +272,7 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
             self.projects.append(project)
     
     def removeProject(self):
-        print(self.getCurrentIndex())
-        self.todo()
+        print(self.currentItem().__dict__)
     
     def rename(self):
         '''Renames current project'''
@@ -317,6 +326,15 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
 class BaseItem(QtGui.QTreeWidgetItem):
     def __init__(self, parent=None):
         super(BaseItem, self).__init__(parent)
+        
+        self.refreshAction = QtGui.QAction(QtGui.QIcon(":/spin.svg"),
+                                           "&Refresh", None,
+                                           triggered=self.refresh,
+                                           shortcut="F5")
+        self.refreshAction.setToolTip("Refresh")
+        
+        self.contextMenu = QtGui.QMenu()
+        self.contextMenu.addAction(self.refreshAction)
     
     @classmethod
     def getChildren(cls, parent, recursive=True):
@@ -340,6 +358,11 @@ class BaseItem(QtGui.QTreeWidgetItem):
         if ok and new_value is not old_value:
             item = self.parent.selectedIndexes()[0].model().itemFromIndex(index)
             item.setText(self.currentColumn(), new_value)
+        
+    def refresh(self):
+        ''' Refreshes item and its children based on contained data '''
+        print("Refresh of {}".format(self))
+    
 
 class ProjectItem(BaseItem):
     projects = []
@@ -530,8 +553,8 @@ class AtomItem(BaseItem):
         self.atom = atom or self.newAtom()
         self.refresh()
         
-    def newAtom(self):
-        return Atom('C')
+    def newAtom(self, element='C', **kwargs):
+        return Atom(element, **kwargs)
     
     def refresh(self):
         self.setIcon(0, QtGui.QIcon(":/atom.svg"))
@@ -541,13 +564,27 @@ class AtomItem(BaseItem):
         for i,j in enumerate(["x", "y", "z"]):
             eval("self.{} = QtGui.QTreeWidgetItem(self)".format(j))
             eval('self.{}.setText(0, "{} = {}")'.format(j, j, self.atom.coordinates[i]))
-            eval('self.{}.setToolTip(0, "{}-coordinate for atom"'.format(j, j.upper())
+            eval('self.{}.setToolTip(0, "{}-coordinate for atom"'.format(j, j.upper()))
         
         # valence
+        self.valence = QtGui.QTreeWidgetItem(self)
+        self.valence.setText(0, "valence = {}".format(self.atom.valence))
+        self.valence.setToopTip(0, "Specifies the valency (charge) of the atom (or ion) e.g. +2")
         
         # fractional occupancy
-        
+        self.occupancy = QtGui.QTreeWidgetItem(self)
+        self.occupancy.setText(0, "occupancy = {}".format(self.atom.occupancy))
+        self.occupancy.setToolTip(0, "Specifies the fractional occupancy "
+                                  "of the atomic site.\nThis is useful if "
+                                  "sites (e.g. on the surface) are known to \n"
+                                  "contain vacancies or the structure is an alloy")
         # minimum radius
+        self.radius = QtGui.QTreeWidgetItem(self)
+        self.radius.setText(0, "r_{min} = {}".format(self.atom.radius))
+        self.radius.setToolTip(0, "Specifies the muffin-tin radius of "
+                               "the atom or ion.\nThis radius is the smallest "
+                               "interatomic distance before \na penalty is "
+                               "invoked during geometry optimisation")
         
         
 class IVGroupItem(BaseItem):
