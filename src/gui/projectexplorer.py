@@ -327,6 +327,8 @@ class BaseItem(QtGui.QTreeWidgetItem):
     def __init__(self, parent=None):
         super(BaseItem, self).__init__(parent)
         
+        self.editAction = QtGui.QAction(QtGui.QIcon(":/document_edit_24x32.png"),
+                                        "&Edit", None)
         self.refreshAction = QtGui.QAction(QtGui.QIcon(":/spin.svg"),
                                            "&Refresh", None,
                                            triggered=self.refresh,
@@ -334,6 +336,7 @@ class BaseItem(QtGui.QTreeWidgetItem):
         self.refreshAction.setToolTip("Refresh")
         
         self.contextMenu = QtGui.QMenu()
+        self.contextMenu.addAction(self.editAction)
         self.contextMenu.addAction(self.refreshAction)
     
     @classmethod
@@ -358,7 +361,11 @@ class BaseItem(QtGui.QTreeWidgetItem):
         if ok and new_value is not old_value:
             item = self.parent.selectedIndexes()[0].model().itemFromIndex(index)
             item.setText(self.currentColumn(), new_value)
-        
+    
+    def edit(self):
+        ''' Edits the current item bringing up dialog if needed '''
+        print("Edit of {}".format(self))
+    
     def refresh(self):
         ''' Refreshes item and its children based on contained data '''
         print("Refresh of {}".format(self))
@@ -456,14 +463,18 @@ class ModelItem(BaseItem):
     MODEL_CLASS = core.model.BaseModel
     __tooltip__ = "Model"
     __description__ = ""
-    modelChanged = QtCore.Signal()
     
     def __init__(self, parent=None, model=None):
         super(BaseItem, self).__init__(parent)
         self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
 
         self.model = model
-        
+    
+    @QtCore.Slot()
+    def modelChanged(self, model):
+        """ Actions to undertake once model has changed """
+        print(self.__tooltip__ + " changed")
+    
     def setModel(self, model):
         ''' sets the model '''
         if isinstance(model, basestring):
@@ -542,14 +553,15 @@ class SettingsItem(BaseItem):
 
 class AtomItem(BaseItem):
     ''' Class for handling atoms '''
-    
-    atomChanged = QtCore.Signal()
-    
     def __init__(self, parent=None, atom=None):
         super(self.__class__, self).__init__(parent)
         
         self.atom = atom or self.newAtom()
         self.refresh()
+        
+    @QtCore.Slot()
+    def atomChanged(self, atom):
+        pass
         
     def newAtom(self, element='C', **kwargs):
         return Atom(element, **kwargs)
@@ -663,25 +675,48 @@ class IVInfoItem(BaseItem):
 
 
 class IVCurveItem(BaseItem):
+    """ IVCurveItem for handling a generic IV curve """
     def __init__(self, parent=None, path=None):
         super(IVCurveItem, self).__init__(parent)
         self.setIcon(0, QtGui.QIcon(":/graph_dash.svg"))
         self.setText(0, "IV curve")
+        self.setToolTip(0, "IV curve")
+        
+        self.path = path
+    
+    @QtCore.Slot()
+    def dataChanged(self):
+        pass
+    
+    @property
+    def path(self):
+        return self._path
+        
+    @path.setter
+    def path(self, path):
+        try:
+            self._path = os.path.abspath(os.path.expanduser(path))
+        except:
+            self._path = None
 
 
 class ExperimentalIVCurveItem(IVCurveItem):
     def __init__(self, parent=None, path=None):
-        super(ExperimentalIVCurveItem, self).__init__(parent)
+        super(ExperimentalIVCurveItem, self).__init__(parent, path)
         self.setIcon(0, QtGui.QIcon(":/iv_expt.svg"))
         self.setText(0, "Experimental IV")
+        self.setToolTip(0, "Experimental IV")
 
 
 class TheoreticalIVCurveItem(IVCurveItem):
     def __init__(self, parent=None, path=None):
-        super(TheoreticalIVCurveItem, self).__init__(parent)
+        super(TheoreticalIVCurveItem, self).__init__(parent, path)
         self.setIcon(0, QtGui.QIcon(":/iv_theory.svg"))
         self.setText(0, "Theoretical IV")
-        self.setFlags(self.flags())
+        self.setToolTip(0, "Theoretical IV")
+    
+    def contextMenu(self):
+        pass
 
 
 if __name__ == '__main__':
