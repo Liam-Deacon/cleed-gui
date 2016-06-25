@@ -108,7 +108,7 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
                                                  shortcut='Del')
         self.newProjectAction.setToolTip("Remove project")
         
-        self.removeProjectAction = QtGui.QAction(
+        self.openProjectAction = QtGui.QAction(
                                         QtGui.QIcon(":/folder_fill.svg"),
                                         "Open Project &Location", self,
                                         triggered=self.openProjectLocation)
@@ -135,6 +135,8 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
         #self.explorerProjectMenu.addAction(self.cutAction)
         #self.explorerProjectMenu.addAction(self.pasteAction)
         self.explorerProjectMenu.addAction(self.renameAction)
+        self.explorerProjectMenu.addAction(self.openProjectAction)
+        self.explorerProjectMenu.addSeparator()
         self.explorerProjectMenu.addAction(self.removeProjectAction)
         self.explorerProjectMenu.addSeparator()
         self.explorerProjectMenu.addAction(self.refreshAction)
@@ -153,8 +155,18 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
     def openProjectLocation(self):
         ''' Opens the currently selected project's location '''
         import webbrowser
-        filepath = self.currentItem()._path or self.default_dir
+        filepath = self.currentProject()['item'].project_dir or self.default_dir
         webbrowser.open(filepath)
+    
+    def getChildren(self, index):
+        if not index.isValid():
+            return []
+
+        children = []
+        for i in range(index.model().rowCount(index)):
+            children += self.getChildren(index.child(i, 0))
+        
+        return children
     
     def expandChildren(self, index):
         ''' Recursely expands all children for the given index node'''
@@ -203,7 +215,10 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
         while self.indexOfTopLevelItem(item) < 0:
             item = item.parent()
 
-        return {'name': item.text(self.currentColumn()), 'item': item}
+        project = {'name': item.text(self.currentColumn()), 
+                   'item': item,
+                   'index': self.currentIndex()}
+        return project
     
     def newProject(self, projectName=None):
         if not projectName:
@@ -267,21 +282,43 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
             pass    
     
     def importModel(self):
-        '''Import model from text file'''
-        pass
+        ''' Import model from text file '''
+        project = self.currentProject()['item']
+        model = QtGui.QFileDialog.getOpenFileName(parent=self, 
+                                                  caption="Select CLEED project directory...",
+                                                  directory=project.project_dir, 
+                                                  filter="*")
+        if os.path.exists(model) and not model in self.projects[project].models:
+            self.projects[project].models.append(ModelGroupItem.load(model))
     
     def importProject(self):
-        '''Import a project'''
+        ''' Import a project '''
         project = QtGui.QFileDialog.getExistingDirectory(parent=self, 
                             caption="Select CLEED project directory...")
         if os.path.isdir(project) and not project in self.projects:
             self.projects.append(project)
     
     def removeProject(self):
-        print(self.currentItem().__dict__)
+        ''' Removes current project '''
+        project = self.currentProject()
+        
+        msg_box = QtGui.QMessageBox()
+        msg_box.delete = QtGui.QCheckBox("Delete project from filesystem", 
+                                         parent=msg_box)
+        
+        reply = msg_box.question(self, "Remove Project",
+                    "Are you sure you want to remove '{}'?".format(project['name']),
+                    QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+        if reply == QtGui.QMessageBox.Yes:
+            item = project['item']
+            children = item.takeChildren()
+            for child in children:
+                del(child) 
+            self.takeTopLevelItem(self.indexOfTopLevelItem(item))
+            del(item)
     
     def rename(self):
-        '''Renames current project'''
+        ''' Renames current project '''
         project = self.currentProject()
         old_name = project['name']
         new_name, ok = QtGui.QInputDialog.getText(self, 
@@ -291,7 +328,8 @@ class ProjectTreeWidget(QtGui.QTreeWidget):
                                                   old_name)
         if ok and new_name is not old_name:
             item = project['item']
-            item.setText(self.currentColumn(), new_name) 
+            item.setProject(dirname=item.project_dir, name=new_name, 
+                            overwrite=None, rename=True) 
         
         
     def refresh(self):
@@ -385,10 +423,10 @@ class ProjectItem(BaseItem):
     def __init__(self, parent=None, path=None, name=None, overwrite=None):
         super(ProjectItem, self).__init__(parent)
         self.setIcon(0, QtGui.QIcon(":/folder_fill.svg"))
-        self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
+        #self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
         self.setToolTip(0, "LEED-IV Project")
         self.models = []
-        self.setProject(path, name)
+        self.setProject(path, name, overwrite=overwrite)
         
         #add children
         self._init_children()
@@ -474,7 +512,7 @@ class ProjectItem(BaseItem):
     
     @classmethod
     def newProject(cls, parent=None,
-                   path=Project.default_dir, name=cls.__new_name, overwrite=None):
+                   path=Project.default_dir, name=__new_name, overwrite=None):
         """ Creates a new ProjectItem instance """
         return cls(parent, path, name, overwrite)
         
@@ -497,14 +535,14 @@ class ModelGroupItem(BaseItem):
         super(ModelGroupItem, self).__init__(parent)
         self.setIcon(0, QtGui.QIcon(":/blocks.svg"))
         self.setText(0, "New_Model")
-        self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
+        #self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
         self.setToolTip(0, "Model belonging to project")
         #self.setModelName(path)
         
         # init items
         self.surface = SurfaceModelItem(self)
         self.bulk = BulkModelItem(self)
-        self.iv_groups = IVGroupItem(self)
+        self.iv_groups = [IVGroupItem(self)]
     
     def setModelName(self, path):
         self.Path = path
@@ -519,6 +557,15 @@ class ModelGroupItem(BaseItem):
         
         if isinstance(group, IVGroupItem):
             self.addChild(group)
+            
+        self.iv_groups.append(group)
+            
+    def removeGroup(self, group):
+        return self.groups.pop(group)
+    
+    @classmethod
+    def load(cls, model_path):
+        return cls(parent=None, path=model_path)
         
 class ModelItem(BaseItem):
     ''' common class for both bulk and surface model items '''
@@ -528,7 +575,7 @@ class ModelItem(BaseItem):
     
     def __init__(self, parent=None, model=None):
         super(BaseItem, self).__init__(parent)
-        self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
+        #self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
 
         self.model = model
     
@@ -786,12 +833,13 @@ if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     explorer = ProjectTreeWidget()
     
-    project = ProjectItem.newProject()
-    #pro2 = ProjectItem()
+    project = ProjectItem.newProject(overwrite=True)
+    
     explorer.addTopLevelItem(project)
+    
+    project.setExpanded(True)
     for child in project.getChildren(project):
         child.setExpanded(True)
-    #explorer.addTopLevelItem(pro2)
     
     explorer.show()
     app.exec_()
