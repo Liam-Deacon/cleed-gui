@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*
 ##############################################################################
 # Author: Liam Deacon                                                        #
 #                                                                            #
@@ -34,28 +36,32 @@ from __future__ import absolute_import, division, with_statement
 
 from qtbackend import QtCore, QtGui
 
-import os.path
+import os
+import re
+
 try:
     import res_rc
-except:
+except ImportError:
     pass
 
 try:
     import core
 except ImportError:
     import sys
-    import os
     module_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     sys.path.insert(0, module_path)
     import core
 finally:
+    from core.project import Project
     from core.model import Model, BulkModel, SurfaceModel, Atom
+    
+try:
+    from log import logger
+except ImportError:
+    from core.log import logger
 
 class ProjectTreeWidget(QtGui.QTreeWidget):
-    default_dir = os.path.join(os.path.expanduser("~"), "CLEED", "models")
-    examples_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                                "..", "..", "res", "examples", "models")
-    last_project_dir = default_dir
+    last_project_dir = Project.default_dir
     
     def __init__(self, parent=None):
         super(ProjectTreeWidget, self).__init__(parent)
@@ -372,18 +378,17 @@ class BaseItem(QtGui.QTreeWidgetItem):
     
 
 class ProjectItem(BaseItem):
+    __new_name = 'NewProject' 
     projects = []
     
     '''class for project items'''
-    def __init__(self, parent=None, path=None, name=None):
+    def __init__(self, parent=None, path=None, name=None, overwrite=None):
         super(ProjectItem, self).__init__(parent)
-        self.name = name or "New_Project{}".format(len(self.projects))
         self.setIcon(0, QtGui.QIcon(":/folder_fill.svg"))
         self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable)
         self.setToolTip(0, "LEED-IV Project")
-        self.setProjectPath(path)
-        
         self.models = []
+        self.setProject(path, name)
         
         #add children
         self._init_children()
@@ -404,29 +409,86 @@ class ProjectItem(BaseItem):
         pass
     
     @property
-    def project_path(self):
-        if not hasattr(self, "_path"): 
-            self._path = None
-        return self._path or os.path.join(ProjectTreeWidget.default_dir,
-                                          self.name)
-    
-    @project_path.setter
-    def project_path(self, path):
-        self._path = path or ProjectTreeWidget.default_dir
-    
-    def setProjectPath(self, path):
-        self.project_path = path 
-        self.setText(0, self.name)
-        self.setToolTip(0, 'LEED-IV Project: "{}"'.format(os.path.join(self.project_path, self.name)))
+    def project_dir(self):
+        if not hasattr(self, "_dir"): 
+                self._dir = None
+        return self._dir or Project.default_dir
+
+    @project_dir.setter
+    def project_dir(self, dirname):
+        self._dir = re.sub("[?<>\[\]{}&*^%$£@?|`~_]+", 
+                           "_", dirname or '') or Project.default_dir
         
+    @property
+    def project_path(self):
+        return os.path.join(self.project_dir, self.name)
+    
+    def setProject(self, dirname, name, overwrite=None, rename=False):
+        """ Sets the project directory and name """   
+        old_name = self.name
+        old_dir = self.project_dir
+        old_path = self.project_path
+             
+        self.name = name
+        self.project_dir = dirname
+        filepath = self.project_path
+        
+        # ask user to overwrite if not default specified
+        if not os.path.isdir(self.project_dir):
+            reply = QtGui.QMessageBox.question(None, "Create missing directories"
+                    "Do you sure you want to create '{}'?".format(self.project_dir),
+                    QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+            if reply == QtGui.QMessageBox.Yes:
+                os.makedirs(self.project_dir, mode)
+        
+        # ask user to overwrite if not default specified
+        if overwrite is None and os.path.exists(filepath):
+            reply = QtGui.QMessageBox.question(None, "{} exists".format(self.name),
+                    "Do you sure you want to overwrite '{}'?".format(filepath),
+                    QtGui.QMessageBox.Yes | QtGui.QMessageBox.No)
+            overwrite = True if reply == QtGui.QMessageBox.Yes else False
+        
+        # split number from end and enumerate as needed
+        i = re.sub(".*?([0-9]+)$", "\\1", self.name)
+        base_path = re.split("" + i + "$",  filepath)[0]
+        i = int(i) if i.isdigit() else 0
+    
+        while os.path.exists(filepath) and not overwrite:
+            filepath = "{}{:03d}".format(base_path, i)
+            i += 1
+        
+        self.name = os.path.basename(filepath)
+        self.setText(0, self.name)
+        self.setToolTip(0, 'LEED-IV Project: "{}"'.format(self.project_path))
+        self.setData(0, QtCore.Qt.UserRole, {'project': self.project_path, 
+                                             'models': self.models})
+        
+        if os.path.exists(old_path) and rename:
+            from shutil import move
+            try:
+                move(old_path, self.project_path)
+            except (IOError, OSError) as err:
+                logger.error(err.message)
+                
+            
+    
+    @classmethod
+    def newProject(cls, parent=None,
+                   path=Project.default_dir, name=cls.__new_name, overwrite=None):
+        """ Creates a new ProjectItem instance """
+        return cls(parent, path, name, overwrite)
         
     @property
     def name(self):
-        return self._name
+        if not hasattr(self, "_name"):
+            self._name = None
+        return self._name or self.__new_name
     
     @name.setter
     def name(self, name):
-        self._name = name
+        # ensure name is valid
+        self._name = re.sub("[?<>\[\]{}&*^%$£@?|`~_]+", 
+                            "_", name or '') or self.__new_name 
     
         
 class ModelGroupItem(BaseItem):
@@ -724,7 +786,7 @@ if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     explorer = ProjectTreeWidget()
     
-    project = ProjectItem()
+    project = ProjectItem.newProject()
     #pro2 = ProjectItem()
     explorer.addTopLevelItem(project)
     for child in project.getChildren(project):
