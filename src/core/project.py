@@ -77,6 +77,11 @@ class Project(object):
         Copies project and appropriately renaming all files.
     '''
     
+    default_dir = os.path.join(os.path.expanduser("~"), "CLEED", "models")
+    examples_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)),
+                                "..", "..", "res", "examples", "models")
+    last_project_dir = default_dir
+    
     def __init__(self, name, root_dir="", **kwargs):
         self.model_name = name
         self.model_root = root_dir
