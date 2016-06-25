@@ -30,9 +30,38 @@
 **log.py** - module for handling log messages and related items
 '''
 
+import os
 import logging
 from collections import OrderedDict
+from common import __APP_NAME__
 
+LOG_FILE = os.path.join(os.environ['TEMP'], __APP_NAME__ + str('.log'))
+FORMATTER = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                "%Y-%m-%d %H:%M:%S")
+
+def logger(log_level=None, handlers=[]):
+    logger = logging.getLogger(__APP_NAME__)
+    if log_level:
+        logger.setLevel(log_level)
+    if handlers:
+        [logger.addHandler(hdlr) for hdlr in handlers]
+    elif not logger.handlers:
+        # create file handler which logs all messages
+        fh = logging.FileHandler(LOG_FILE)  # temp directory is emptied on system reboot
+        formatter = FORMATTER
+        fh.setFormatter(formatter)
+        fh.setLevel(logging.INFO)  # change to taste
+        
+        # create console handler with a higher log level
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.WARNING)
+        ch.setFormatter(formatter)
+        
+        # add the handlers to the logger
+        logger.addHandler(ch)
+        logger.addHandler(fh)
+    return logger
 
 class LogLevel(object):
     ''' Class for handling log levels 
@@ -60,3 +89,7 @@ class LogLevel(object):
             except (AttributeError, KeyError):
                 level = None 
         return level or LogLevel.DEFAULT_LEVEL
+
+if __name__ == "__main__":
+    l = logger()
+    l.warning("You should be writing unit tests...")

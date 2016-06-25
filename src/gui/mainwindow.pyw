@@ -49,6 +49,7 @@ from mdichild import MdiChild
 from projectexplorer import ProjectTreeWidget, ProjectItem, ModelItem
 
 from project import Project
+import log
 
 import res_rc  # note this requires compiled resource file res_rc.py
 
@@ -268,26 +269,7 @@ class MainWindow(QtGui.QMainWindow):
         ######################################
         
         # create logger
-        self.logger = logging.getLogger(__APP_NAME__)
-        self.logger.setLevel(logging.DEBUG)
-        
-        # create file handler which logs all messages
-        fh = logging.FileHandler(os.path.join(os.environ['TEMP'], __APP_NAME__ 
-                + str('.log')))  # temp directory is emptied on system reboot
-        formatter = logging.Formatter(
-                        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                         "%Y-%m-%d %H:%M:%S")
-        fh.setFormatter(formatter)
-        fh.setLevel(logging.INFO)  # change to taste
-        
-        # create console handler with a higher log level
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.WARNING)
-        ch.setFormatter(formatter)
-        
-        # add the handlers to the logger
-        self.logger.addHandler(ch)
-        self.logger.addHandler(fh)
+        self.logger = log.logger()
         
         if __DEBUG__:
             pwd = os.path.dirname(__file__)
@@ -299,12 +281,13 @@ class MainWindow(QtGui.QMainWindow):
         stream_proxy.write_text.connect(self.write)
         stream_proxy.flush_text.connect(self.flush)
         handler = logging.StreamHandler(stream_proxy)
-        handler.setFormatter(formatter)
+        handler.setFormatter(log.FORMATTER)
         self.logger.addHandler(handler)
         
         # intercept stdout and stderr
-        sys.stderr = OutputInterceptor('stderr', sys.stderr)
-        sys.stdout = OutputInterceptor('stdout', sys.stdout)
+        self.logger.warning("Disabled interception of stderr and stdout")
+        #sys.stderr = OutputInterceptor('stderr', sys.stderr)
+        #sys.stdout = OutputInterceptor('stdout', sys.stdout)
         
         # other variables
         self.projects = {}
