@@ -617,21 +617,20 @@ class MainWindow(QtGui.QMainWindow):
         import time
         time.sleep(1)
     
-    def loadFile(self, fileName):
-        file = QtCore.QFile(fileName)
-        if not file.open(QtCore.QFile.ReadOnly | QtCore.QFile.Text):
+    def loadFile(self, filename):
+        ''' Generically loads a file as text '''
+        try:
+            with open(filename, 'r') as f:
+                QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+                self.textEdit.setPlainText(''.join(f.readlines())) 
+                QtGui.QApplication.restoreOverrideCursor()
+                self.statusBar().showMessage("Loaded: %s" % filename, 2000)
+                self.setCurrentFile(filename)
+        except IOError as err:
             QtGui.QMessageBox.warning(self, "Recent Files",
-                    "Cannot read file %s:\n%s." % (fileName, 
-                                                   file.errorString()))
-            return
-
-        instr = QtCore.QTextStream(file)
-        QtGui.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-        self.textEdit.setPlainText(instr.readAll())
-        QtGui.QApplication.restoreOverrideCursor()
-
-        self.setCurrentFile(fileName)
-        self.statusBar().showMessage("Loaded: %s" % fileName, 2000)
+                    "Cannot read file %s:\n%s." % (filename, err.message))
+        finally:
+            QtGui.QApplication.restoreOverrideCursor()
         
     def help(self):
         """Display help"""
@@ -956,6 +955,7 @@ class MainWindow(QtGui.QMainWindow):
         
     
     def readSettings(self):
+        ''' Reads application settings '''
         settings = QtCore.QSettings(__APP_DISTRIBUTION__, __APP_NAME__)
         
         self.logger.info("Reading settings from '{}'".format(settings.fileName()))
@@ -963,32 +963,32 @@ class MainWindow(QtGui.QMainWindow):
         # window geometry settings
         pos = settings.value("mainwindow/position", QtCore.QPoint(200, 200))
         size = settings.value("mainwindow/size", QtCore.QSize(400, 400))
-        max = settings.value("mainwindow/maximized", False)
+        maximized = settings.value("mainwindow/maximized", False)
         self.move(pos)
         self.resize(size)
-        if max:
+        if maximized:
             self.showMaximized()
             
         # dock widgets
         for dock in self.docks:
-            for property in {'isVisible': True, 
+            for _property in {'isVisible': True, 
                              'isFloating': False, 
                              'pos': (0, 0), 
                              'size': (0, 0), 
                              'geometry': (0, 0, 0, 0)}:
-                setting = 'docks/{}/{}'.format(dock, property)
+                setting = 'docks/{}/{}'.format(dock, _property)
                 true = True
                 false = False
                 try:
                     val = settings.value(setting, 1)
-                    if property == 'isVisible':
+                    if _property == 'isVisible':
                         setter = 'show' if val is True else 'hide'
                         val = ''
-                    elif property == 'isFloating':
+                    elif _property == 'isFloating':
                         setter = 'setFloating'
-                    elif property == 'size':
+                    elif _property == 'size':
                         setter = 'resize'
-                    elif property == 'pos':
+                    elif _property == 'pos':
                         try:
                             self.ui.addDockWidget(val, 
                                         eval("self.ui.dockWidget" + 
@@ -997,7 +997,7 @@ class MainWindow(QtGui.QMainWindow):
                             pass 
                         continue
                     else:
-                        setter='set'+property.capitalize()
+                        setter='set'+_property.capitalize()
                     val = str(val).lstrip('PyQt4.').replace('Core', 'QtCore')
                     try:
                         exec('self.docks["{}"].{}({})'.format(dock, setter, val))
@@ -1013,6 +1013,7 @@ class MainWindow(QtGui.QMainWindow):
             self.logger.info('setting: {} = {}'.format(i, settings.value(i)))
     
     def writeSettings(self):
+        ''' Writes application settings '''
         settings = QtCore.QSettings(__APP_DISTRIBUTION__, __APP_NAME__)
         
         # window geometry settings
@@ -1023,13 +1024,16 @@ class MainWindow(QtGui.QMainWindow):
         
         # dock widgets
         for dock in self.docks:
-            for property in ['isVisible', 'isFloating', 'pos', 
+            for _property in ['isVisible', 'isFloating', 'pos', 
                              'size', 'geometry']:
-                key = "docks/" + dock + "/" + property
-                value = eval("self.docks['{}'].{}()".format(dock, property))
+                key = "docks/" + dock + "/" + _property
+                value = eval("self.docks['{}'].{}()".format(dock, _property))
                 settings.setValue(key, str(value).lstrip('PyQt4.').lstrip('PySide.'))
         
     def resetSettings(self):
+        ''' Resets application settings - use if experiencing issues crashes on startup, etc. '''
+        settings = QtCore.QSettings(__APP_DISTRIBUTION__, __APP_NAME__)
+        
         settings.setValue("propertiesDockVisible", False) 
         settings.setValue("projectsDockVisible", False) 
         settings.setValue("logDockVisible", False) 
