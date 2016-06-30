@@ -34,10 +34,15 @@ from __future__ import absolute_import, division, with_statement
 
 try:
     import configparser
+    from configparser import ExtendedInterpolation
 except ImportError:
     import ConfigParser as configparser
+    from configparser import ExtendedInterpolation
 
-class CLEEDConfigParser(configparser.ConfigParser):
+class CLEEDConfigParser(configparser.SafeConfigParser):
+    BOOLEAN_STATES = {'true': True, 'false': False}
+    DEFAULT_PATHS = ['CLEED.ini', 'CLEED.cfg', 'cleed.ini', 'cleed.cfg', 
+                     'phaseshifts.ini', 'phaseshifts.cfg']
     SECTIONS = {'defaults': ('executables', 
                              'environment', 
                              'extensions'),
@@ -52,15 +57,20 @@ class CLEEDConfigParser(configparser.ConfigParser):
                 'lattice': (),
                 'paths': (),
                 'pattern': (),
+                'phaseshifts': (),
                 }
+    __parsers = []
     
     def __init__(self, 
                  defaults=None, 
                  dict_type=configparser._default_dict, 
-                 allow_no_value=False):
+                 allow_no_value=False,
+                 interpolation=ExtendedInterpolation()):
         configparser.ConfigParser.__init__(self, defaults=defaults, 
                                            dict_type=dict_type, 
-                                           allow_no_value=allow_no_value)
+                                           allow_no_value=allow_no_value,
+                                           interpolation=interpolation,
+                                           strict=True)
     
         for section in self.SECTIONS:
             self.add_section(section)
@@ -94,4 +104,15 @@ class CLEEDConfigParser(configparser.ConfigParser):
                  'numpy as np; scipy as sp; matplotlib as mpl')
     
         
-    
+        self.__class__.__parsers.append(self)
+        
+    def __del__(self):
+        self.__class__.__parsers.pop(self)
+        
+    @classmethod 
+    def getParser(cls, instance=-1, **kwargs):
+        """ Returns an active instance of the config parser """
+        try:
+            return cls.__parsers[instance]
+        except IndexError:
+            return cls(**kwargs)
