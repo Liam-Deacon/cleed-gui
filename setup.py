@@ -53,7 +53,8 @@ dist = setup(
                             'cython',               # CLEED wrapper
                             'pymol',                # molecular visualiser
                             'phaseshifts',          # phase shift calculations
-                            'appdirs',
+                            'appdirs',              # standard paths
+                            'psutils',              # process monitoring/manipulation
                             ],
         ext_modules=[],
         window=[os.path.join("src", "cleed-gui.pyw")],
